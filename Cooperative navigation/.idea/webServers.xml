@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="9adfc972-ec79-4aca-8bbb-6c2b59752d25" name="jiefeng2">
+        <fileTransfer rootFolder="/home/jiefeng" accessType="SFTP" host="10.88.3.90" port="20001" sshConfigId="6e2f6497-07af-4995-b7f5-7c29fba9716e" sshConfig="jiefeng@10.88.3.90:20001 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions controlEncoding="UTF-8" dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

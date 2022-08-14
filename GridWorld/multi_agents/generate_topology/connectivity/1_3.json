@@ -1,0 +1,11 @@
+{
+    "graph_type": "FC",
+    "experiment id": 1,
+    "num_agents": 1,
+    "connectivity": [
+        [1]
+    ],
+    "pi": [
+        [1]
+    ]
+}

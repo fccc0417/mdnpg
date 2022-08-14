@@ -1,0 +1,217 @@
+import copy
+import os
+import torch
+import json
+import numpy as np
+
+
+###### Load weight matrix
+def load_pi(num_agents, topology):
+    wsize = num_agents
+    if topology == 'dense':
+        topo = 1
+    elif topology == 'ring':
+        topo = 2
+    elif topology == 'bipartite':
+        topo = 3
+
+    with open('generate_topology/connectivity/%s_%s.json' % (wsize, topo), 'r') as f:
+        cdict = json.load(f)  # connectivity dict.
+    return cdict['pi']
+
+
+def take_param_consensus(agents, pi):
+    layer_1_w_lists = []
+    layer_1_b_lists = []
+    layer_2_w_lists = []
+    layer_2_b_lists = []
+    layer_3_w_lists = []
+    layer_3_b_lists = []
+    for i in range(len(agents)):
+        layer_1_w = []
+        layer_1_b = []
+        layer_2_w = []
+        layer_2_b = []
+        layer_3_w = []
+        layer_3_b = []
+        for j in range(len(agents)):
+            layer_1_w.append(agents[j].actors[i].dense1.weight.data)
+            layer_1_b.append(agents[j].actors[i].dense1.bias.data)
+            layer_2_w.append(agents[j].actors[i].dense2.weight.data)
+            layer_2_b.append(agents[j].actors[i].dense2.bias.data)
+            layer_3_w.append(agents[j].actors[i].dense3.weight.data)
+            layer_3_b.append(agents[j].actors[i].dense3.bias.data)
+
+        layer_1_w_lists.append(layer_1_w)
+        layer_1_b_lists.append(layer_1_b)
+        layer_2_w_lists.append(layer_2_w)
+        layer_2_b_lists.append(layer_2_b)
+        layer_3_w_lists.append(layer_3_w)
+        layer_3_b_lists.append(layer_3_b)
+
+    for agent_idx, agent in enumerate(agents):
+        for i, actor in enumerate(agent.actors):
+            actor.dense1.weight.data = torch.sum(
+                torch.stack(tuple(layer_1_w_lists[i])) * torch.tensor(pi[agent_idx]).unsqueeze(-1).unsqueeze(-1), 0).clone()
+            actor.dense1.bias.data = torch.sum(torch.stack(tuple(layer_1_b_lists[i])) * torch.tensor(pi[agent_idx]).unsqueeze(-1), 0).clone()
+
+            actor.dense2.weight.data = torch.sum(
+                torch.stack(tuple(layer_2_w_lists[i])) * torch.tensor(pi[agent_idx]).unsqueeze(-1).unsqueeze(-1), 0).clone()
+            actor.dense2.bias.data = torch.sum(torch.stack(tuple(layer_2_b_lists[i])) * torch.tensor(pi[agent_idx]).unsqueeze(-1), 0).clone()
+
+            actor.dense3.weight.data = torch.sum(
+                torch.stack(tuple(layer_3_w_lists[i])) * torch.tensor(pi[agent_idx]).unsqueeze(-1).unsqueeze(-1), 0).clone()
+            actor.dense3.bias.data = torch.sum(torch.stack(tuple(layer_3_b_lists[i])) * torch.tensor(pi[agent_idx]).unsqueeze(-1), 0).clone()
+    '''
+    # TEST: When topo is dense, nums=[0]
+    numss = []
+    for agent in agents:
+        nums = []
+        for idx, actor in enumerate(agent.actors):
+            a = torch.nn.utils.convert_parameters.parameters_to_vector(actor.parameters())
+            b = torch.nn.utils.convert_parameters.parameters_to_vector(agents[4].actors[idx].parameters())
+            num = np.linalg.norm(a.detach().numpy() - b.detach().numpy(), 2)
+            nums.append(num)
+        numss.append(nums)
+    print(numss)
+    '''
+    return agents
+
+
+'''
+def take_grad_consensus(v_k_lists, pi):
+    consensus_v_k_lists = []
+    for idx in range(len(v_k_lists)):
+        consensus_v_k_list = []
+        for i in range(len(v_k_lists)):
+            c_v_k_list = []
+            for j in range(len(v_k_lists)):
+                c_v_k_list.append(v_k_lists[j][i])
+            grads = torch.sum(torch.stack(tuple(c_v_k_list)) * torch.tensor(pi[idx]).unsqueeze(-1), 0).clone()
+            consensus_v_k_list.append(grads)
+        consensus_v_k_lists.append(consensus_v_k_list)
+    return consensus_v_k_lists
+'''
+
+
+def take_grad_consensus(v_k_lists, pi):
+    c_v_k_lists = []
+
+    # TODO use torch.permute to implement this
+    for i in range(len(v_k_lists)):  # for the i-th copy in all agents
+        c_v_k_list = []
+        for j in range(len(v_k_lists)):
+            c_v_k_list.append(v_k_lists[j][i])
+        c_v_k_lists.append(c_v_k_list)
+
+
+    consensus_v_k_lists = []
+    for idx in range(len(v_k_lists)):
+        consensus_v_k_list = []
+        for i in range(len(v_k_lists)):  #the i-th copy for idx-agent
+            grads = torch.sum(torch.stack(tuple(c_v_k_lists[i])) * torch.tensor(pi[idx]).unsqueeze(-1), 0).clone()
+            consensus_v_k_list.append(grads)
+        consensus_v_k_lists.append(consensus_v_k_list)
+    return consensus_v_k_lists
+
+
+def update_v_lists(v_k_lists, prev_u_lists, u_k_lists):
+    next_v_k_lists = []
+    for v_k_list, prev_u_list, u_k_list in zip(v_k_lists, prev_u_lists, u_k_lists):
+        next_v_k_list = []
+        for v_k, prev_u_k, u_k in zip(v_k_list, prev_u_list, u_k_list):
+            v_k_new = v_k + u_k - prev_u_k
+            next_v_k_list.append(v_k_new)
+        next_v_k_lists.append(next_v_k_list)
+    return next_v_k_lists
+
+
+def update_param(agent, v_k_list, lr=3e-4):
+    '''update parameters for an agent'''
+    for idx, actor in enumerate(agent.actors):
+        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(actor.parameters())
+        new_para = old_para + lr * v_k_list[idx]
+        torch.nn.utils.convert_parameters.vector_to_parameters(new_para, actor.parameters())
+
+
+def moving_average(a, window_size):
+    cumulative_sum = np.cumsum(np.insert(a, 0, 0))
+    middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
+    r = np.arange(1, window_size - 1, 2)
+    begin = np.cumsum(a[:window_size - 1])[::2] / r
+    end = (np.cumsum(a[:-window_size:-1])[::2] / r)[::-1]
+    return np.concatenate((begin, middle, end))
+
+
+def compute_advantage(gamma, lmbda, td_delta):
+    td_delta = td_delta.detach().numpy()
+    advantage_list = []
+    advantage = 0.0
+    for delta in td_delta[::-1]:
+        advantage = gamma * lmbda * advantage + delta
+        advantage_list.append(advantage)
+    advantage_list.reverse()
+    return torch.tensor(advantage_list, dtype=torch.float)
+
+
+def get_flat_grad(y: torch.Tensor, model, **kwargs):
+    grads = torch.autograd.grad(y, model.parameters(), **kwargs)  # type: ignore
+    return torch.cat([grad.reshape(-1) for grad in grads])
+
+
+def set_from_flat_grads(model, flat_params):
+    prev_ind = 0
+    grads = []
+    for param in model.parameters():
+        flat_size = int(np.prod(list(param.size())))
+        grads.append(flat_params[prev_ind:prev_ind + flat_size]) #.view(param.size())
+        prev_ind += flat_size
+    return grads
+
+
+def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_eps_len=20):
+    prev_u_lists, v_k_lists = [], []
+    for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):
+        minibatch_grads_n = []
+        print("Initializing for " + f"agent {idx}" + "...")
+        for i in range(minibatch_size):
+            episode_return = 0
+            transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+            state = sample_env.reset()
+            state = np.concatenate(state).ravel()
+            for t in range(max_eps_len):
+                actions = agent.take_actions(state)
+                next_state, rewards, dones, _ = sample_env.step(actions)
+                next_state = np.concatenate(next_state).ravel()
+                done = all(item == True for item in dones)
+                transition_dict['states'].append(state)
+                transition_dict['actions'].append(actions)
+                transition_dict['next_states'].append(next_state)
+                transition_dict['rewards'].append(rewards[idx])
+                transition_dict['dones'].append(dones[idx])
+                state = next_state
+                episode_return += rewards[idx]
+                reset = t == max_eps_len - 1
+                if done or reset:
+                    print("Agent "+ str(idx) + ': Batch Initial Trajectory ' + str(i) + ': { Reward:', episode_return, 'Done:', done , '}')
+                    break
+
+            advantage = agent.update_value(transition_dict)
+            old_log_probs_list, log_probs_list = agent.calc_log_probs(transition_dict)
+            single_traj_grads = agent.compute_grads(advantage, old_log_probs_list, log_probs_list)
+            single_traj_grads = torch.stack(single_traj_grads, dim=0)
+            minibatch_grads_n.append(single_traj_grads)
+
+        minibatch_grads_n = torch.stack(minibatch_grads_n, dim=0)
+        avg_grads_n = torch.mean(minibatch_grads_n, dim=0)  # grads for the i-th agent and its actors
+        prev_u_list = copy.deepcopy(avg_grads_n)
+        v_k_list = copy.deepcopy(prev_u_list)
+        prev_u_lists.append(prev_u_list)
+        v_k_lists.append(v_k_list)
+
+    consensus_v_k_lists = take_grad_consensus(v_k_lists, pi)
+    agents = take_param_consensus(agents, pi)
+    for agent, v_k in zip(agents, consensus_v_k_lists):
+        update_param(agent, v_k_list, lr=lr)
+    return prev_u_lists, v_k_lists
+

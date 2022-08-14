@@ -1,0 +1,25 @@
+{
+    "graph_type": "Bipar",
+    "experiment id": 3,
+    "num_agents": 2,
+    "connectivity": [
+        [
+            1.0,
+            0.0
+        ],
+        [
+            0.0,
+            1.0
+        ]
+    ],
+    "pi": [
+        [
+            1.0,
+            0.0
+        ],
+        [
+            0.0,
+            1.0
+        ]
+    ]
+}

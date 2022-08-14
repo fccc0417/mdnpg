@@ -1,0 +1,11 @@
+{
+    "graph_type": "Ring",
+    "experiment id": 2,
+    "num_agents": 1,
+    "connectivity": [
+        [1]
+    ],
+    "pi": [
+        [1]
+    ]
+}
