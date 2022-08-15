@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Decentralized momentum-based natual policy gradient
 Code for paper "....."
 
@@ -76,3 +77,8 @@ Code for paper "....."
 │    └─ svrnpg_continuous.py
 └─ README.md
 
+=======
+# mdnpg
+
+something...
+>>>>>>> 991b52e90d84d65edc9db1d7db9c422a84aa2e87
