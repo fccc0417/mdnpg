@@ -10,16 +10,16 @@ Code for paper "....."
 
 ## Code Structure
 
-├─ Cooperative navigation  # Experiments on Cooperative navigation. [[REF](https://github.com/openai/multiagent-particle-envs)]    
+├─ Cooperative navigation  # Experiments on Cooperative navigation.  
 │    ├─ generate_topology  # Connectivity topology [[REF](https://github.com/xylee95/MD-PGT)]  
 │    │    ├─ connectivity  
 │    │    ├─ genconnectivity.py  
-│    │    └─ load_con.py
-│    ├─ mNPG_gt_main.py
-│    ├─ mPG_gt_main.py
+│    │    └─ load_con.py  
+│    ├─ mNPG_gt_main.py  
+│    ├─ mPG_gt_main.py  
 │    ├─ momentum_npg.py
 │    ├─ momentum_pg.py
-│    ├─ multiagent
+│    ├─ multiagent   [[REF](https://github.com/openai/multiagent-particle-envs)]  
 │    │    ├─ core.py
 │    │    ├─ environment.py
 │    │    ├─ multi_discrete.py
@@ -28,7 +28,7 @@ Code for paper "....."
 │    │    ├─ scenario.py
 │    │    └─ scenarios
 │    ├─ nets.py
-│    ├─ particle_envs
+│    ├─ particle_envs   [[REF](https://github.com/openai/multiagent-particle-envs)]  
 │    │    └─ make_particleworld.py
 │    ├─ rl_utils.py
 │    ├─ rl_utils_vp.py
