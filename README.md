@@ -10,10 +10,10 @@ Code for paper "....."
 
 ## Code Structure
 
-├─ Cooperative navigation
-│    ├─ generate_topology
-│    │    ├─ connectivity
-│    │    ├─ genconnectivity.py
+├─ Cooperative navigation  
+│    ├─ generate_topology  
+│    │    ├─ connectivity  
+│    │    ├─ genconnectivity.py  
 │    │    └─ load_con.py
 │    ├─ mNPG_gt_main.py
 │    ├─ mPG_gt_main.py
@@ -76,6 +76,4 @@ Code for paper "....."
 │    └─ svrnpg_continuous.py
 └─ README.md
 
-=======
-# mdnpg
 
