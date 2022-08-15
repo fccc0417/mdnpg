@@ -47,15 +47,14 @@ Code for paper "....."
 │　　│　　└─ init_agent_pos_4_single.py  
 │　　├─ multi_agents  
 │　　│　　├─ generate_topology  
-│　　│　　├─ mNPG_gt_main.py  
-│　　│　　├─ mPG_entropy_main.py  
-│　　│　　├─ mPG_main.py  
-│　　│　　├─ md_npg_gt_results  
+│　　│　　├─ mdnpg_main.py  
+│　　│　　├─ mdpgt_main.py  
 │　　│　　├─ model_load.py  
 │　　│　　├─ momentum_npg.py  
 │　　│　　├─ momentum_pg.py  
-│　　│　　├─ momentum_pg_en.py  
 │　　│　　├─ nets.py  
+│　　│　　├─ pg_entropy_main.py  
+│　　│　　├─ pg_entropy.py  
 │　　│　　└─ rl_utils.py  
 │　　├─ single_agent  
 │　　│　　├─ agents  
