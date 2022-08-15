@@ -15,8 +15,8 @@ Code for paper "....."
 │　　│　　├─ connectivity  
 │　　│　　├─ genconnectivity.py  
 │　　│　　└─ load_con.py  
-│　　├─ mdnpg.py  
-│　　├─ mdpgt.py  
+│　　├─ mdnpg_main.py  
+│　　├─ mdpgt_main.py  
 │　　├─ momentum_npg.py  
 │　　├─ momentum_pg.py  
 │　　├─ multiagent [[REF](https://github.com/openai/multiagent-particle-envs)]   

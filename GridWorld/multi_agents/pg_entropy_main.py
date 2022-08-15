@@ -4,7 +4,7 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from rl_utils import *
 from tools.tool import *
-from momentum_pg_en import MomentumPG
+from pg_entropy import PGwithEntropy
 from envs.gridworld import GridWorldEnv
 from envs.init_agent_pos_4_all_envs import *
 import torch
@@ -57,7 +57,7 @@ def run(args):
         # env = GridWorldEnv(grid_map_path=map_paths[i])
         envs.append(env)
         agents.append(
-            MomentumPG(state_space=env.observation_space, action_space=env.action_space, lmbda=args.lmbda,
+            PGwithEntropy(state_space=env.observation_space, action_space=env.action_space, lmbda=args.lmbda,
                        critic_lr=args.critic_lr, gamma=args.gamma, entropy_para=args.entropy_para, device=device))
 
     print('observation Space:', env.observation_space)
@@ -181,8 +181,8 @@ if __name__ == '__main__':
     for error_list, label in zip(error_lists, labels):
         plt.plot(error_list, label=label)
     plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('{}-agent Momentum PG with GT on {} (discrete)'.format(num_agents, env_name))
+    plt.ylabel('Consensus error')
+    plt.title('{}-agent MPG witn Entropy on {} (discrete)'.format(num_agents, env_name))
     plt.legend()
     plt.savefig(os.path.join(fpath, 'error.jpg'))
     plt.show()
