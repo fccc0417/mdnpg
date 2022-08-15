@@ -10,7 +10,7 @@ Code for paper "....."
 
 ## Code Structure
 
-├─ Cooperative navigation  # Experiments on Cooperative navigation.  
+├─ Cooperative navigation　# Experiments on Cooperative navigation.  
 │　　├─ topology　# Connectivity topology [[REF](https://github.com/xylee95/MD-PGT)]  
 │　　│　　├─ connectivity  
 │　　│　　├─ genconnectivity.py  
@@ -59,17 +59,17 @@ Code for paper "....."
 │　　├─ single_agent  
 │　　│　　├─ agents  
 │　　│　　├─ model_load.py  
+│　　│　　├─ momentum_npg_discrete.py  
 │　　│　　├─ momentum_pg_discrete.py  
-│　　│　　├─ momentum_trpo_discrete.py  
-│　　│　　├─ pg_discrete_entropy.py  
+│　　│　　├─ pg_entropy_discrete.py  
 │　　│　　├─ ppo_discrete.py  
 │　　│　　└─ svrnpg_discrete.py  
 │　　├─ tools  
 │　　│　　└─ tool.py  
 ├─ MountainCar  
+│　　├─ momentum_npg_continuous.py  
 │　　├─ momentum_pg_continuous.py  
 │　　├─ momentum_pg_continuous2.py  
-│　　├─ momentum_trpo_continuous.py  
 │　　├─ ppo_continuous.py  
 │　　├─ rl_utils.py  
 │　　└─ svrnpg_continuous.py  
