@@ -10,8 +10,8 @@ Code for paper "....."
 
 ## Code Structure
 
-├─ Cooperative navigation  
-│    ├─ generate_topology  
+├─ Cooperative navigation  # Experiments on Cooperative navigation. [[REF](https://github.com/openai/multiagent-particle-envs)]    
+│    ├─ generate_topology  # Connectivity topology [[REF](https://github.com/xylee95/MD-PGT)]  
 │    │    ├─ connectivity  
 │    │    ├─ genconnectivity.py  
 │    │    └─ load_con.py
