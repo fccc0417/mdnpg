@@ -3,11 +3,11 @@ import argparse
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from rl_utils import *
-from tools.tool import *
+from GridWorld.tools.tool import *
 from momentum_pg import MomentumPG
-from envs.gridworld import GridWorldEnv
+from GridWorld.envs.gridworld import GridWorldEnv
 # from envs.gridworld_4_test import GridWorldEnv
-from envs.init_agent_pos_4_all_envs import *
+from GridWorld.envs.init_agent_pos_4_all_envs import *
 import torch
 import copy
 import os

@@ -11,14 +11,6 @@ Code for paper "....."
 ## Code Structure
 
 ├─ Cooperative navigation　# Experiments on Cooperative navigation.  
-│　　├─ topology　# Connectivity topology [[REF](https://github.com/xylee95/MD-PGT)]  
-│　　│　　├─ connectivity  
-│　　│　　├─ genconnectivity.py  
-│　　│　　└─ load_con.py  
-│　　├─ mdnpg_main.py  
-│　　├─ mdpgt_main.py  
-│　　├─ momentum_npg.py  
-│　　├─ momentum_pg.py  
 │　　├─ multiagent [[REF](https://github.com/openai/multiagent-particle-envs)]   
 │　　│　　├─ core.py  
 │　　│　　├─ environment.py  
@@ -26,18 +18,26 @@ Code for paper "....."
 │　　│　　├─ policy.py  
 │　　│　　├─ rendering.py  
 │　　│　　├─ scenario.py  
-│　　│　　└─ scenarios  
-│　　├─ nets.py  
+│　　│　　└─ scenarios   
 │　　├─ particle_envs [[REF](https://github.com/openai/multiagent-particle-envs)]  
 │　　│　　└─ make_particleworld.py  
-│　　├─ rl_utils.py  
-│　　├─ rl_utils_vp.py  
+│　　├─ topology　# Connectivity topology [[REF](https://github.com/xylee95/MD-PGT)]  
+│　　│　　├─ connectivity  
+│　　│　　├─ genconnectivity.py  
+│　　│　　└─ load_con.py  
 │　　├─ tools  
 │　　│　　└─ tool.py  
-│　　├─ value_propagation_main_off_policy.py  
-│　　├─ value_propagation_main_on_policy.py  
+│　　├─ nets.py  
+│　　├─ rl_utils.py  
+│　　├─ momentum_npg.py  
+│　　├─ mdnpg_main.py  
+│　　├─ momentum_pg.py  
+│　　├─ mdpgt_main.py  
+│　　├─ rl_utils_vp.py  
+│　　├─ value_propagation_one_step.py  
 │　　├─ value_propagation_multi_step.py  
-│　　└─ value_propagation_one_step.py  
+│　　├─ value_propagation_main_on_policy.py  
+│　　└─ value_propagation_main_off_policy.py  
 ├─ GridWorld  
 │　　├─ envs  
 │　　│　　├─ grid_maps  
@@ -47,18 +47,16 @@ Code for paper "....."
 │　　│　　└─ init_agent_pos_4_single.py  
 │　　├─ multi_agents  
 │　　│　　├─ generate_topology  
-│　　│　　├─ mdnpg_main.py  
-│　　│　　├─ mdpgt_main.py  
-│　　│　　├─ model_load.py  
-│　　│　　├─ momentum_npg.py  
-│　　│　　├─ momentum_pg.py  
 │　　│　　├─ nets.py  
-│　　│　　├─ pg_entropy_main.py  
+│　　│　　├─ rl_utils.py  
+│　　│　　├─ momentum_npg.py  
+│　　│　　├─ mdnpg_main.py  
+│　　│　　├─ momentum_pg.py  
+│　　│　　├─ mdpgt_main.py  
 │　　│　　├─ pg_entropy.py  
-│　　│　　└─ rl_utils.py  
+│　　│　　├─ pg_entropy_main.py  
+│　　│　　└─ model_load.py  
 │　　├─ single_agent  
-│　　│　　├─ agents  
-│　　│　　├─ records  
 │　　│　　├─ model_load.py  
 │　　│　　├─ momentum_npg_discrete.py  
 │　　│　　├─ momentum_pg_discrete.py  
@@ -68,10 +66,8 @@ Code for paper "....."
 │　　├─ tools  
 │　　│　　└─ tool.py  
 ├─ MountainCar  
-│　　├─ records    
 │　　├─ momentum_npg_continuous.py  
 │　　├─ momentum_pg_continuous.py  
-│　　├─ momentum_pg_continuous2.py  
 │　　├─ ppo_continuous.py  
 │　　├─ rl_utils.py  
 │　　└─ svrnpg_continuous.py  

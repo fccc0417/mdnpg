@@ -3,10 +3,10 @@ import argparse
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from rl_utils import *
-from tools.tool import *
+from GridWorld.tools.tool import *
 from pg_entropy import PGwithEntropy
-from envs.gridworld import GridWorldEnv
-from envs.init_agent_pos_4_all_envs import *
+from GridWorld.envs.gridworld import GridWorldEnv
+from GridWorld.envs.init_agent_pos_4_all_envs import *
 import torch
 import os
 

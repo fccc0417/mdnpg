@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from tqdm import tqdm
-from envs.gridworld import GridWorldEnv
+from GridWorld.envs.gridworld import GridWorldEnv
 # from envs.gridworld_4_test import GridWorldEnv
-from envs.init_agent_pos_4_single import *
+from GridWorld.envs.init_agent_pos_4_single import *
 
 map_path_0 = "../envs/grid_maps/map_0.npy"
 map_path_1 = "../envs/grid_maps/map_1.npy"

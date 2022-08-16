@@ -7,8 +7,8 @@ import torch.nn.functional as F
 import copy
 import os
 # from envs.gridworld_4_test import GridWorldEnv
-from envs.gridworld import GridWorldEnv
-from envs.init_agent_pos_4_single import *
+from GridWorld.envs.gridworld import GridWorldEnv
+from GridWorld.envs.init_agent_pos_4_single import *
 
 map_path_0 = "../envs/grid_maps/map_0.npy"
 map_path_1 = "../envs/grid_maps/map_1.npy"
