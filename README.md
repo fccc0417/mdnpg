@@ -63,8 +63,8 @@ Code for paper "....."
 │　　│　　├─ pg_entropy_discrete.py　# PG with entropy.  
 │　　│　　├─ ppo_discrete.py　#  PPO.  
 │　　│　　└─ svrnpg_discrete.py　# SRVR-NPG.  
-│　　├─ tools  
-│　　│　　└─ tool.py  
+│　　└─ tools  
+│　　 　　└─ tool.py  
 ├─ MountainCar　# Experiments on MountainCarContinuous.    
 │　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
 │　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
