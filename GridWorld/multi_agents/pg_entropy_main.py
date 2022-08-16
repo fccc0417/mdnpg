@@ -41,7 +41,7 @@ def set_args(num_agents=1, topology='dense'):
 
 def run(args):
     # timestr = str(time()).replace('.', 'p')
-    fpath2 = os.path.join('records', 'md_pg_en_logs', str(num_agents) + 'D', topology)
+    fpath2 = os.path.join('records', 'pg_en_logs', str(num_agents) + 'D', topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)
     else:
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     for label, topology in zip(labels, topologies):
         args = set_args(num_agents=num_agents, topology=topology)
-        fpath = os.path.join('md_pg_en_results', env_name, str(num_agents) + 'D', topology)
+        fpath = os.path.join('pg_en_results', env_name, str(num_agents) + 'D', topology)
         # + '_' + timestr
         if not os.path.isdir(fpath):
             os.makedirs(fpath)

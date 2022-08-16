@@ -48,7 +48,7 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
 def run(args):
     # timestr = str(time()).replace('.', 'p')
 
-    fpath2 = os.path.join('records', 'md_npg_gt_logs', str(num_agents) + 'D', 'beta=' + str(args.beta), topology)
+    fpath2 = os.path.join('records', 'mdnpg_logs', str(num_agents) + 'D', 'beta=' + str(args.beta), topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)
     else:
@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
     for beta, label, topology in zip(betas, labels, topologies):
         args = set_args(num_agents=num_agents, beta=beta, topology=topology)
-        fpath = os.path.join('md_npg_gt_results', env_name, str(num_agents) + 'D',
+        fpath = os.path.join('mdnpg_results', env_name, str(num_agents) + 'D',
                              'beta=' + str(beta) + '_' + topology)  # + '_' + timestr
         if not os.path.isdir(fpath):
             os.makedirs(fpath)
