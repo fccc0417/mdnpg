@@ -38,8 +38,8 @@ Code for paper "....."
 │　　├─ value_propagation_multi_step.py　# Class of multi-step-version VP method.  
 │　　├─ value_propagation_main_on_policy.py　# Main file of on-policy-version VP method.  
 │　　└─ value_propagation_main_off_policy.py　# Main file of off-policy-verion VP method.  
-├─ GridWorld  
-│　　├─ envs　# Code for environment.       
+├─ GridWorld　# Experiments on GridWorld.  
+│　　├─ envs　# Code for environment.  
 │　　│　　├─ grid_maps  
 │　　│　　├─ gridworld.py  
 │　　│　　├─ gridworld_4_test.py  
@@ -65,7 +65,7 @@ Code for paper "....."
 │　　│　　└─ svrnpg_discrete.py　# SRVR-NPG.  
 │　　├─ tools  
 │　　│　　└─ tool.py  
-├─ MountainCar  
+├─ MountainCar　# Experiments on MountainCarContinuous.    
 │　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
 │　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
 │　　├─ ppo_continuous.py　# PPO.  
