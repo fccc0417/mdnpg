@@ -27,7 +27,7 @@ Code for paper "....."
 │　　│　　└─ load_con.py  
 │　　├─ tools  
 │　　│　　└─ tool.py  
-│　　├─ nets.py　# Policy network and value network.
+│　　├─ nets.py　# Policy network and value network.  
 │　　├─ rl_utils.py  
 │　　├─ momentum_npg.py　# Class of MDNPG method.  
 │　　├─ mdnpg_main.py　# Main file of MDNPG method.  
@@ -46,8 +46,8 @@ Code for paper "....."
 │　　│　　├─ init_agent_pos_4_all_envs.py  
 │　　│　　└─ init_agent_pos_4_single.py  
 │　　├─ multi_agents　# Multi-agent GridWorld.  
-│　　│　　├─ generate_topology  
-│　　│　　├─ nets.py  
+│　　│　　├─ topology　# Generate connectivity topology [[REF](https://github.com/xylee95/MD-PGT)].      
+│　　│　　├─ nets.py　# Policy network and value network.    
 │　　│　　├─ rl_utils.py  
 │　　│　　├─ momentum_npg.py　# Class of MDNPG method.    
 │　　│　　├─ mdnpg_main.py　# Main file of MDNPG method.    

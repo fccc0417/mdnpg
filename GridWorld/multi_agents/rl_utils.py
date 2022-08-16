@@ -14,7 +14,7 @@ def load_pi(num_agents, topology):
     elif topology == 'bipartite':
         topo = 3
 
-    with open('generate_topology/connectivity/%s_%s.json' % (wsize, topo), 'r') as f:
+    with open('topology/connectivity/%s_%s.json' % (wsize, topo), 'r') as f:
         cdict = json.load(f)  # connectivity dict.
     return cdict['pi']
 
