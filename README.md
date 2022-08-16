@@ -11,7 +11,7 @@ Code for paper "....."
 ## Code Structure
 
 ├─ Cooperative navigation　# Experiments on Cooperative navigation.  
-│　　├─ multiagent [[REF](https://github.com/openai/multiagent-particle-envs)]   
+│　　├─ multiagent　# Code for environment [[REF](https://github.com/openai/multiagent-particle-envs)].       
 │　　│　　├─ core.py  
 │　　│　　├─ environment.py  
 │　　│　　├─ multi_discrete.py  
@@ -19,58 +19,58 @@ Code for paper "....."
 │　　│　　├─ rendering.py  
 │　　│　　├─ scenario.py  
 │　　│　　└─ scenarios   
-│　　├─ particle_envs [[REF](https://github.com/openai/multiagent-particle-envs)]  
+│　　├─ particle_envs　# Code for environment [[REF](https://github.com/openai/multiagent-particle-envs)].      
 │　　│　　└─ make_particleworld.py  
-│　　├─ topology　# Connectivity topology [[REF](https://github.com/xylee95/MD-PGT)]  
+│　　├─ topology　# Generate connectivity topology [[REF](https://github.com/xylee95/MD-PGT)].    
 │　　│　　├─ connectivity  
 │　　│　　├─ genconnectivity.py  
 │　　│　　└─ load_con.py  
 │　　├─ tools  
 │　　│　　└─ tool.py  
-│　　├─ nets.py  
+│　　├─ nets.py　# Policy network and value network.
 │　　├─ rl_utils.py  
-│　　├─ momentum_npg.py  
-│　　├─ mdnpg_main.py  
-│　　├─ momentum_pg.py  
-│　　├─ mdpgt_main.py  
+│　　├─ momentum_npg.py　# Class of MDNPG method.  
+│　　├─ mdnpg_main.py　# Main file of MDNPG method.  
+│　　├─ momentum_pg.py　# Class of MDPGT method [[REF](https://github.com/xylee95/MD-PGT)].  
+│　　├─ mdpgt_main.py　# Main file of MDPGT method [[REF](https://github.com/xylee95/MD-PGT)].  
 │　　├─ rl_utils_vp.py  
-│　　├─ value_propagation_one_step.py  
-│　　├─ value_propagation_multi_step.py  
-│　　├─ value_propagation_main_on_policy.py  
-│　　└─ value_propagation_main_off_policy.py  
+│　　├─ value_propagation_one_step.py　# Class of one-step-version VP method.   
+│　　├─ value_propagation_multi_step.py　# Class of multi-step-version VP method.  
+│　　├─ value_propagation_main_on_policy.py　# Main file of on-policy-version VP method.  
+│　　└─ value_propagation_main_off_policy.py　# Main file of off-policy-verion VP method.  
 ├─ GridWorld  
-│　　├─ envs  
+│　　├─ envs　# Code for environment.       
 │　　│　　├─ grid_maps  
 │　　│　　├─ gridworld.py  
 │　　│　　├─ gridworld_4_test.py  
 │　　│　　├─ init_agent_pos_4_all_envs.py  
 │　　│　　└─ init_agent_pos_4_single.py  
-│　　├─ multi_agents  
+│　　├─ multi_agents　# Multi-agent GridWorld.  
 │　　│　　├─ generate_topology  
 │　　│　　├─ nets.py  
 │　　│　　├─ rl_utils.py  
-│　　│　　├─ momentum_npg.py  
-│　　│　　├─ mdnpg_main.py  
-│　　│　　├─ momentum_pg.py  
-│　　│　　├─ mdpgt_main.py  
-│　　│　　├─ pg_entropy.py  
-│　　│　　├─ pg_entropy_main.py  
+│　　│　　├─ momentum_npg.py　# Class of MDNPG method.    
+│　　│　　├─ mdnpg_main.py　# Main file of MDNPG method.    
+│　　│　　├─ momentum_pg.py　# Class of MDPGT method [[REF](https://github.com/xylee95/MD-PGT)].    
+│　　│　　├─ mdpgt_main.py　# Main file of MDPGT method [[REF](https://github.com/xylee95/MD-PGT)].    
+│　　│　　├─ pg_entropy.py　# Class of PG with entropy method.    
+│　　│　　├─ pg_entropy_main.py　# Main file of PG with entropy method.   
 │　　│　　└─ model_load.py  
-│　　├─ single_agent  
+│　　├─ single_agent　# Multi-agent GridWorld.  
 │　　│　　├─ model_load.py  
-│　　│　　├─ momentum_npg_discrete.py  
-│　　│　　├─ momentum_pg_discrete.py  
-│　　│　　├─ pg_entropy_discrete.py  
-│　　│　　├─ ppo_discrete.py  
-│　　│　　└─ svrnpg_discrete.py  
+│　　│　　├─ momentum_npg_discrete.py　# Momentum-based NPG.  
+│　　│　　├─ momentum_pg_discrete.py　# Momentum-based PG.  
+│　　│　　├─ pg_entropy_discrete.py　# PG with entropy.  
+│　　│　　├─ ppo_discrete.py　#  PPO.  
+│　　│　　└─ svrnpg_discrete.py　# SRVR-NPG.  
 │　　├─ tools  
 │　　│　　└─ tool.py  
 ├─ MountainCar  
-│　　├─ momentum_npg_continuous.py  
-│　　├─ momentum_pg_continuous.py  
-│　　├─ ppo_continuous.py  
+│　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
+│　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
+│　　├─ ppo_continuous.py　# PPO.  
 │　　├─ rl_utils.py  
-│　　└─ svrnpg_continuous.py  
+│　　└─ svrnpg_continuous.py　# SRVR-NPG.  
 └─ README.md
 
 
