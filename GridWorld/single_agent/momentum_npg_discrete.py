@@ -64,12 +64,12 @@ def initialization(sample_env, agent, max_eps_len=150, lr=1e-4, minibatch=10):
         single_traj_grads = agent.compute_grads(transition_dict, advantage)
         minibatch_grads.append(single_traj_grads)
 
-    prev_u = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  #np.mean(minibatch_grads) or x.mean() # average across batch
+    prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  #np.mean(minibatch_grads) or x.mean() # average across batch
 
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
-    new_para = old_para + lr * prev_u
+    new_para = old_para + lr * prev_v
     torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
-    return prev_u
+    return prev_v
 
 
 class PolicyNet(torch.nn.Module):
@@ -210,11 +210,11 @@ class Momentum_TRPO:
         obj_grad = torch.cat([grad.view(-1) for grad in grads]).detach()
         return obj_grad
 
-    def compute_u(self, grad, prev_u, isw, prev_g, beta):
-        grad_surrogate = beta * grad + (1 - beta) * (prev_u + grad - isw * prev_g)
+    def compute_v(self, grad, prev_v, isw, prev_g, beta):
+        grad_surrogate = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
         return grad_surrogate
 
-    def policy_learn(self, transition_dict, advantage, prev_u, phi):  # 更新策略函数
+    def policy_learn(self, transition_dict, advantage, prev_v, phi):  # 更新策略函数
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
         old_log_probs = torch.log(self.actor(states).gather(1, actions)).detach()
@@ -223,10 +223,10 @@ class Momentum_TRPO:
         isw = self.compute_IS_weight(actions, states, phi, self.min_isw)
         prev_g = self.compute_grad_traj_prev_weights(states, actions, phi, advantage)
         obj_grad = self.compute_grads(transition_dict, advantage)
-        grad_u = self.compute_u(obj_grad, prev_u, isw, prev_g, self.beta)
+        grad_v = self.compute_v(obj_grad, prev_v, isw, prev_g, self.beta)
 
         # 用共轭梯度法计算x = H^(-1)g
-        descent_direction = self.conjugate_gradient(grad_u, states, old_action_dists)
+        descent_direction = self.conjugate_gradient(grad_v, states, old_action_dists)
 
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
         max_coef = torch.sqrt(2 * self.kl_constraint /
@@ -239,7 +239,7 @@ class Momentum_TRPO:
         # new_para = old_para + descent_direction * max_coef * lr
         torch.nn.utils.convert_parameters.vector_to_parameters(
             new_para, self.actor.parameters())  # 用线性搜索后的参数更新策略
-        return grad_u
+        return grad_v
 
     def update_value(self, transition_dict):
         states = torch.tensor(transition_dict['states'],
@@ -302,7 +302,7 @@ def run(beta, seed):
     # env = GridWorldEnv(grid_map_path=map_path_4)
     agent = Momentum_TRPO(env.observation_space, env.action_space, lmbda, kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta)
     old_policy = copy.deepcopy(agent.actor)
-    prev_u = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)
+    prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)
 
 
     return_list = []
@@ -332,8 +332,8 @@ def run(beta, seed):
                         break
                 return_list.append(episode_return)
                 advantage = agent.update_value(transition_dict)
-                grad_u = agent.policy_learn(transition_dict, advantage, prev_u, phi)
-                prev_u = grad_u
+                grad_v = agent.policy_learn(transition_dict, advantage, prev_v, phi)
+                prev_v = grad_v
 
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),

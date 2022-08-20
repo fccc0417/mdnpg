@@ -84,7 +84,7 @@ def run(args, env_name):
         old_policy = copy.deepcopy(agent.actors)
         old_policies.append(old_policy)
 
-    prev_u_lists, v_k_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=1,
+    prev_v_lists, y_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=1,
                                            max_eps_len=args.max_eps_len)
 
     envs = []
@@ -114,7 +114,7 @@ def run(args, env_name):
                     old_policies.append(old_policy)
 
                 episode_returns = 0
-                u_k_lists = []
+                v_lists = []
                 states_lists = []
 
                 # consensus error
@@ -134,7 +134,7 @@ def run(args, env_name):
                 error_list.append(errors.numpy())
 
                 for idx, (agent, env) in enumerate(zip(agents, envs)):
-                    minibatch_u = []
+                    minibatch_v = []
                     states_list = []
                     for b in range(args.minibatch_size):
                         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
@@ -159,25 +159,25 @@ def run(args, env_name):
                                 break
 
                         advantage = agent.update_value(transition_dict)
-                        single_traj_u = agent.compute_u_k(transition_dict, advantage, prev_u_lists[idx], phis_list[idx], args.beta)
-                        single_traj_u = torch.stack(single_traj_u, dim=0)
-                        minibatch_u.append(single_traj_u)
+                        single_traj_v = agent.compute_v_list(transition_dict, advantage, prev_v_lists[idx], phis_list[idx], args.beta)
+                        single_traj_v = torch.stack(single_traj_v, dim=0)
+                        minibatch_v.append(single_traj_v)
 
                     # episode_returns += episode_return
-                    minibatch_u = torch.stack(minibatch_u, dim=0)
-                    u_k_list = torch.mean(minibatch_u, dim=0)
-                    u_k_lists.append(u_k_list)
+                    minibatch_v = torch.stack(minibatch_v, dim=0)
+                    grad_v = torch.mean(minibatch_v, dim=0)
+                    v_lists.append(grad_v)
                     states_lists.append(states_list)
 
                 return_list.append(episode_returns/args.minibatch_size)
 
                 # tracking
-                v_k_lists = take_grad_consensus(v_k_lists, pi)
-                next_v_k_lists = update_v_lists(v_k_lists, prev_u_lists, u_k_lists)
+                y_lists = take_grad_consensus(y_lists, pi)
+                next_y_lists = update_y_lists(y_lists, prev_v_lists, v_lists)
 
                 update_grad_lists = []
-                for v_k_list, agent, states_list in zip(next_v_k_lists, agents, states_lists):
-                    direction_grad_list = agent.compute_precondition_with_v(states_list, v_k_list)
+                for next_y_list, agent, states_list in zip(next_y_lists, agents, states_lists):
+                    direction_grad_list = agent.compute_precondition_with_y(states_list, next_y_list)
                     update_grad_lists.append(direction_grad_list)
 
                 consensus_grad_lists = take_grad_consensus(update_grad_lists, pi)
@@ -186,8 +186,8 @@ def run(args, env_name):
                 for agent, grads in zip(agents, consensus_grad_lists):
                     update_param(agent, grads, lr=args.grad_lr)
 
-                v_k_lists = copy.deepcopy(next_v_k_lists)
-                prev_u_lists = copy.deepcopy(u_k_lists)
+                y_lists = copy.deepcopy(next_y_lists)
+                prev_v_lists = copy.deepcopy(v_lists)
 
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (args.num_episodes / 10 * i + i_episode + 1),

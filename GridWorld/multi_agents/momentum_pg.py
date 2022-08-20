@@ -62,14 +62,14 @@ class MomentumPG:
         obj_grad = torch.cat([grad.view(-1) for grad in grads]).detach()
         return obj_grad
 
-    def compute_u_k(self, transition_dict, advantage, prev_u, phi, beta):  # 更新策略函数
+    def compute_v(self, transition_dict, advantage, prev_v, phi, beta):  # 更新策略函数
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
         isw = self.compute_IS_weight(actions, states, phi, self.min_isw)
         prev_g = self.compute_grad_traj_prev_weights(states, actions, phi, advantage)
         grad = self.compute_grads(transition_dict, advantage)
-        grad_u = beta * grad + (1 - beta) * (prev_u + grad - isw * prev_g)
-        return grad_u
+        grad_v = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
+        return grad_v
 
     def update_value(self, transition_dict):
         states = torch.tensor(transition_dict['states'],

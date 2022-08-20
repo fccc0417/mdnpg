@@ -94,36 +94,36 @@ def take_grad_consensus(v_k_lists, pi):
 '''
 
 
-def take_grad_consensus(v_k_lists, pi):
-    c_v_k_lists = []
+def take_grad_consensus(grad_lists, pi):
+    re_grad_lists = []
 
     # TODO use torch.permute to implement this
-    for i in range(len(v_k_lists)):  # for the i-th copy in all agents
-        c_v_k_list = []
-        for j in range(len(v_k_lists)):
-            c_v_k_list.append(v_k_lists[j][i])
-        c_v_k_lists.append(c_v_k_list)
+    for i in range(len(grad_lists)):  # for the i-th copy in all agents
+        re_grad_list = []
+        for j in range(len(grad_lists)):
+            re_grad_list.append(grad_lists[j][i])
+        re_grad_lists.append(re_grad_list)
 
 
-    consensus_v_k_lists = []
-    for idx in range(len(v_k_lists)):
-        consensus_v_k_list = []
-        for i in range(len(v_k_lists)):  #the i-th copy for idx-agent
-            grads = torch.sum(torch.stack(tuple(c_v_k_lists[i])) * torch.tensor(pi[idx]).unsqueeze(-1), 0).clone()
-            consensus_v_k_list.append(grads)
-        consensus_v_k_lists.append(consensus_v_k_list)
-    return consensus_v_k_lists
+    consensus_grad_lists = []
+    for idx in range(len(grad_lists)):
+        consensus_grad_list = []
+        for i in range(len(grad_lists)):  #the i-th copy for idx-agent
+            grads = torch.sum(torch.stack(tuple(re_grad_lists[i])) * torch.tensor(pi[idx]).unsqueeze(-1), 0).clone()
+            consensus_grad_list.append(grads)
+        consensus_grad_lists.append(consensus_grad_list)
+    return consensus_grad_lists
 
 
-def update_v_lists(v_k_lists, prev_u_lists, u_k_lists):
-    next_v_k_lists = []
-    for v_k_list, prev_u_list, u_k_list in zip(v_k_lists, prev_u_lists, u_k_lists):
-        next_v_k_list = []
-        for v_k, prev_u_k, u_k in zip(v_k_list, prev_u_list, u_k_list):
-            v_k_new = v_k + u_k - prev_u_k
-            next_v_k_list.append(v_k_new)
-        next_v_k_lists.append(next_v_k_list)
-    return next_v_k_lists
+def update_y_lists(y_lists, prev_v_lists, v_lists):
+    next_y_lists = []
+    for y_list, prev_v_list, v_list in zip(y_lists, prev_v_lists, v_lists):
+        next_y_list = []
+        for y, prev_v, v in zip(y_list, prev_v_list, v_list):
+            y_new = y + v - prev_v
+            next_y_list.append(y_new)
+        next_y_lists.append(next_y_list)
+    return next_y_lists
 
 
 def update_param(agent, v_k_list, lr=3e-4):
@@ -170,7 +170,7 @@ def set_from_flat_grads(model, flat_params):
 
 
 def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_eps_len=20):
-    prev_u_lists, v_k_lists = [], []
+    prev_v_lists, y_lists = [], []
     for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):
         minibatch_grads_n = []
         print("Initializing for " + f"agent {idx}" + "...")
@@ -204,14 +204,14 @@ def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_ep
 
         minibatch_grads_n = torch.stack(minibatch_grads_n, dim=0)
         avg_grads_n = torch.mean(minibatch_grads_n, dim=0)  # grads for the i-th agent and its actors
-        prev_u_list = copy.deepcopy(avg_grads_n)
-        v_k_list = copy.deepcopy(prev_u_list)
-        prev_u_lists.append(prev_u_list)
-        v_k_lists.append(v_k_list)
+        prev_v_list = copy.deepcopy(avg_grads_n)
+        y_list = copy.deepcopy(prev_v_list)
+        prev_v_lists.append(prev_v_list)
+        y_lists.append(y_list)
 
-    consensus_v_k_lists = take_grad_consensus(v_k_lists, pi)
+    consensus_y_lists = take_grad_consensus(y_lists, pi)
     agents = take_param_consensus(agents, pi)
-    for agent, v_k in zip(agents, consensus_v_k_lists):
-        update_param(agent, v_k_list, lr=lr)
-    return prev_u_lists, v_k_lists
+    for agent, y_list in zip(agents, consensus_y_lists):
+        update_param(agent, y_list, lr=lr)
+    return prev_v_lists, y_lists
 

@@ -87,7 +87,7 @@ class MomentumPG:
             obj_grad_list.append(obj_grad)
         return obj_grad_list
 
-    def compute_u_k(self, transition_dict, advantage, prev_u_list, phis, beta):  # 更新策略函数
+    def compute_v_list(self, transition_dict, advantage, prev_v_list, phis, beta):  # 更新策略函数
         old_log_probs_list, log_probs_list = self.calc_log_probs(transition_dict)
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         # actions_list = torch.tensor(transition_dict['actions']).view(self.num_agents, -1).to(self.device)
@@ -97,11 +97,11 @@ class MomentumPG:
         prev_g_list = self.compute_grad_traj_prev_weights(states, actions_list, phis, advantage)
         grad_list = self.compute_grads(advantage, old_log_probs_list, log_probs_list)
 
-        grad_u_list = []
-        for grad, prev_u, prev_g, isw in zip(grad_list, prev_u_list, prev_g_list, isw_list):
-            grad_u = beta * grad + (1 - beta) * (prev_u + grad - isw * prev_g)
-            grad_u_list.append(grad_u)
-        return grad_u_list
+        grad_v_list = []
+        for grad, prev_v, prev_g, isw in zip(grad_list, prev_v_list, prev_g_list, isw_list):
+            grad_v = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
+            grad_v_list.append(grad_v)
+        return grad_v_list
 
     def update_value(self, transition_dict):
         states = torch.tensor(transition_dict['states'],

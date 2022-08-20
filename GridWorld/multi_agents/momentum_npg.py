@@ -125,30 +125,30 @@ class MomentumNPG:
         obj_grad = torch.cat([grad.view(-1) for grad in grads]).detach()
         return obj_grad
 
-    def compute_u_k(self, transition_dict, advantage, prev_u, phi, beta):  # 更新策略函数
+    def compute_v(self, transition_dict, advantage, prev_v, phi, beta):  # 更新策略函数
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
         isw = self.compute_IS_weight(actions, states, phi, self.min_isw)
         prev_g = self.compute_grad_traj_prev_weights(states, actions, phi, advantage)
         grad = self.compute_grads(transition_dict, advantage)
-        grad_u = beta * grad + (1 - beta) * (prev_u + grad - isw * prev_g)
-        return grad_u
+        grad_v = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
+        return grad_v
 
-    def compute_precondition_with_v(self, states_list, v_k, transition_dict, advantage):
+    def compute_precondition_with_y(self, states_list, y, transition_dict, advantage):
         states = torch.tensor(states_list, dtype=torch.float).to(self.device)
         # actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
         old_action_dists = torch.distributions.Categorical(self.actor(states).detach())
 
         # 用共轭梯度法计算x = H^(-1)g
-        descent_direction = self.conjugate_gradient(v_k, states, old_action_dists)
+        descent_direction = self.conjugate_gradient(y, states, old_action_dists)
 
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
         max_coef = torch.sqrt(2 * self.kl_constraint /
                               (torch.dot(descent_direction, Hd) + 1e-8))
 
-        min_coef = 1e-7
-        max_coef = max_coef if max_coef > min_coef else min_coef
-        vec_grad = max_coef * descent_direction
+        # min_coef = 1e-7
+        # max_coef = max_coef if max_coef > min_coef else min_coef
+        # vec_grad = max_coef * descent_direction
 
         states_2 = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions_2 = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)

@@ -93,9 +93,9 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
-def update_v(v_k, u_k, prev_u_k):
-    next_v_k = v_k + u_k - prev_u_k
-    return next_v_k
+def update_y(y, v, prev_v):
+    next_y = y + v - prev_v
+    return next_y
 
 
 def get_flat_grad(y: torch.Tensor, model, **kwargs):

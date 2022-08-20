@@ -56,13 +56,13 @@ def initialization(sample_env, agent, lr=1e-4, minibatch=10):
     # update policy network
     # need grads to be shape num_agent x list of grads of every layer
     # minibatch_grads = np.asarray(minibatch_grads, dtype=object)
-    prev_u = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  #np.mean(minibatch_grads) or x.mean() # average across batch
-    # prev_u = minibatch_grads.tolist()
+    prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  #np.mean(minibatch_grads) or x.mean() # average across batch
+    # prev_v = minibatch_grads.tolist()
 
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
-    new_para = old_para + lr * prev_u
+    new_para = old_para + lr * prev_v
     torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
-    return prev_u
+    return prev_v
 
 
 class PolicyNetContinuous(torch.nn.Module):
@@ -158,26 +158,26 @@ class Momentum_PG_Continuous:
         obj_grad = torch.cat([grad.view(-1) for grad in grads]).detach()
         return obj_grad
 
-    def compute_u(self, grad, prev_u, isw, prev_g, beta):
-        grad_surrogate = beta * grad + (1 - beta) * (prev_u + grad - isw * prev_g)
+    def compute_v(self, grad, prev_v, isw, prev_g, beta):
+        grad_surrogate = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
         return grad_surrogate
 
-    def policy_learn(self, transition_dict, advantage, prev_u, phi, lr):  # 更新策略函数
+    def policy_learn(self, transition_dict, advantage, prev_v, phi, lr):  # 更新策略函数
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
 
         isw = self.compute_IS_weight(actions, states, phi, self.min_isw)
         prev_g = self.compute_grad_traj_prev_weights(states, actions, phi, advantage)
         obj_grad = self.compute_grads(transition_dict, advantage)
-        grad_u = self.compute_u(obj_grad, prev_u, isw, prev_g, self.beta)
+        grad_v = self.compute_v(obj_grad, prev_v, isw, prev_g, self.beta)
 
         old_para = torch.nn.utils.convert_parameters.parameters_to_vector(
             self.actor.parameters())
-        new_para = old_para + lr * grad_u
+        new_para = old_para + lr * grad_v
 
         torch.nn.utils.convert_parameters.vector_to_parameters(
             new_para, self.actor.parameters())
-        return grad_u
+        return grad_v
 
     def update_value(self, transition_dict):
         states = torch.tensor(transition_dict['states'],
@@ -233,7 +233,7 @@ def run(beta, env_name, seed):
     sample_env = gym.make(env_name)
     agent = Momentum_PG_Continuous(sample_env.observation_space, sample_env.action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr)
     old_policy = copy.deepcopy(agent.actor)
-    prev_u = initialization(sample_env, agent, lr=actor_lr, minibatch=minibatch_size)
+    prev_v = initialization(sample_env, agent, lr=actor_lr, minibatch=minibatch_size)
     env = gym.make(env_name)
     env.seed(args.seed)
     return_list = []
@@ -260,8 +260,8 @@ def run(beta, env_name, seed):
                     episode_return += reward
                 return_list.append(episode_return)
                 advantage = agent.update_value(transition_dict)
-                grad_u = agent.policy_learn(transition_dict, advantage, prev_u, phi, agent.actor_lr)
-                prev_u = grad_u
+                grad_v = agent.policy_learn(transition_dict, advantage, prev_v, phi, agent.actor_lr)
+                prev_v = grad_v
 
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),

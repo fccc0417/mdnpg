@@ -77,7 +77,7 @@ def run(args):
         old_policy = copy.deepcopy(agent.actor)
         old_policies.append(old_policy)
 
-    prev_u_list, v_k_list = initialization_gt(sample_envs=envs, agents=agents, pi=pi, lr=args.grad_lr,
+    prev_v_list, y_list = initialization_gt(sample_envs=envs, agents=agents, pi=pi, lr=args.grad_lr,
                                               minibatch_size=args.init_minibatch_size,
                                               max_eps_len=args.max_eps_len)
 
@@ -106,7 +106,7 @@ def run(args):
                 error_list.append(errors.numpy())
 
                 episode_returns = 0
-                u_k_list = []
+                v_list = []
                 if args.random_loc:
                     agent_pos = agent_pos_reset_4_envs(envs)
                 for idx, (agent, env) in enumerate(zip(agents, envs)):
@@ -127,26 +127,26 @@ def run(args):
                             break
 
                     advantage = agent.update_value(transition_dict)
-                    single_traj_u = agent.compute_u_k(transition_dict, advantage, prev_u_list[idx], phi_list[idx], args.beta)
-                    u_k_list.append(single_traj_u)
+                    single_traj_v = agent.compute_v(transition_dict, advantage, prev_v_list[idx], phi_list[idx], args.beta)
+                    v_list.append(single_traj_v)
 
                 return_list.append(episode_returns)
 
                 # tracking
-                v_k_list = take_grad_consensus(v_k_list, pi, agents)
-                next_v_k_list = []
+                y_list = take_grad_consensus(y_list, pi, agents)
+                next_y_list = []
                 for idx, agent in enumerate(agents):
-                    v_k_new = update_v(v_k_list[idx], u_k_list[idx], prev_u_list[idx])
-                    next_v_k_list.append(v_k_new)
+                    y_new = update_y(y_list[idx], v_list[idx], prev_v_list[idx])
+                    next_y_list.append(y_new)
 
-                consensus_next_v_k_list = take_grad_consensus(next_v_k_list, pi, agents)
+                consensus_next_y_list = take_grad_consensus(next_y_list, pi, agents)
                 agents = take_param_consensus(agents, pi)
 
-                for agent, grad in zip(agents, consensus_next_v_k_list):
+                for agent, grad in zip(agents, consensus_next_y_list):
                     update_param(agent, grad, lr=args.grad_lr)
 
-                prev_u_list = copy.deepcopy(u_k_list)
-                v_k_list = copy.deepcopy(next_v_k_list)
+                prev_v_list = copy.deepcopy(v_list)
+                y_list = copy.deepcopy(next_y_list)
 
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (args.num_episodes / 10 * i + i_episode + 1),
