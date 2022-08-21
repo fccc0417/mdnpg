@@ -5,12 +5,11 @@ from rl_utils import *
 
 class MomentumNPG:
     """ momentum-based NPG algorithm """
-    def __init__(self, num_agents, state_dim, action_dim, lmbda, kl_constraint, alpha,
+    def __init__(self, num_agents, state_dim, action_dim, lmbda, kl_constraint,
                  critic_lr, gamma, device, min_isw, beta):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.num_agents = num_agents
-        # 策略网络参数不需要优化器更新
         self.actors = []
         for _ in range(self.num_agents):
             self.actors.append(PolicyNet(self.state_dim, self.action_dim).to(device))
@@ -18,9 +17,8 @@ class MomentumNPG:
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
                                                  lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
-        self.kl_constraint = kl_constraint  # KL距离最大限制
-        self.alpha = alpha  # 线性搜索参数
+        self.lmbda = lmbda  
+        self.kl_constraint = kl_constraint 
         self.device = device
         self.min_isw = min_isw
         self.beta = beta
@@ -183,28 +181,3 @@ class MomentumNPG:
         return vec_grad_list
 
 
-
-    '''
-    def line_search(self, states, actions, advantage, old_log_probs,
-                    old_action_dists, max_vec):  # 线性搜索
-        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(
-            self.actor.parameters())
-        old_obj = self.compute_surrogate_obj(states, actions, advantage,
-                                             old_log_probs, self.actor)
-        for i in range(15): 
-            coef = self.alpha**i
-            new_para = old_para + coef * max_vec
-            new_actor = copy.deepcopy(self.actor)
-            torch.nn.utils.convert_parameters.vector_to_parameters(
-                new_para, new_actor.parameters())
-            new_action_dists = torch.distributions.Categorical(
-                new_actor(states))
-            kl_div = torch.mean(
-                torch.distributions.kl.kl_divergence(old_action_dists,
-                                                     new_action_dists))
-            new_obj = self.compute_surrogate_obj(states, actions, advantage,
-                                                 old_log_probs, new_actor)
-            if new_obj > old_obj and kl_div < self.kl_constraint:
-                return new_para
-        return old_para
-    '''

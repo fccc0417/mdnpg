@@ -110,7 +110,7 @@ def run(args):
 
                 return_list.append(episode_returns)
 
-                # consensus_grad_list = take_grad_consensus(grad_list, pi, agents)
+                # consensus_grad_list = take_grad_consensus(grad_list, pi)
                 agents = take_param_consensus(agents, pi)
 
                 for agent, grad in zip(agents, grad_list):

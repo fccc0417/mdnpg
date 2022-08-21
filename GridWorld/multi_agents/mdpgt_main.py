@@ -133,13 +133,13 @@ def run(args):
                 return_list.append(episode_returns)
 
                 # tracking
-                y_list = take_grad_consensus(y_list, pi, agents)
+                y_list = take_grad_consensus(y_list, pi)
                 next_y_list = []
                 for idx, agent in enumerate(agents):
                     y_new = update_y(y_list[idx], v_list[idx], prev_v_list[idx])
                     next_y_list.append(y_new)
 
-                consensus_next_y_list = take_grad_consensus(next_y_list, pi, agents)
+                consensus_next_y_list = take_grad_consensus(next_y_list, pi)
                 agents = take_param_consensus(agents, pi)
 
                 for agent, grad in zip(agents, consensus_next_y_list):

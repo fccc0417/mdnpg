@@ -10,33 +10,35 @@ import torch
 import copy
 import os
 
-seed = 3
+seed = 0
 torch.manual_seed(seed)
 device = torch.device("cpu")  
 
 
 def set_args(num_agents=1, beta=0.2, topology='dense'):
-    parser = argparse.ArgumentParser(description='Multi-agent example')
-    parser.add_argument('--num_agents', type=int, default=num_agents, help='Number of agents')
-    parser.add_argument('--num_landmarks', type=int, default=num_agents, help='Number of landmarks')
+    parser = argparse.ArgumentParser(description='MDPGT')
+    parser.add_argument('--num_agents', type=int, default=num_agents, help='number of agents')
+    parser.add_argument('--num_landmarks', type=int, default=num_agents, help='number of landmarks')
+    parser.add_argument('--action_dim', type=int, default=5, help='number of actions')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
-    parser.add_argument('--critic_lr', type=float, default=1e-3, help='critic_lr')
-    parser.add_argument('--grad_lr', type=float, default=3e-4, help='update lr')
-    parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
-    parser.add_argument('--max_eps_len', type=int, default=20, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=20000, help='Number training episodes')  # 10000
-    parser.add_argument('--beta', type=float, default=beta, help='Beta term for surrogate gradient')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
+    parser.add_argument('--critic_lr', type=float, default=1e-3, help='value learning rate')
+    parser.add_argument('--grad_lr', type=float, default=3e-4, help='policy learning rate')
+    parser.add_argument('--lmbda', type=float, default=0.95, help='lambda for GAE')
+    parser.add_argument('--max_eps_len', type=int, default=20, help='number of steps per episode')
+    parser.add_argument('--num_episodes', type=int, default=20000, help='number training episodes')  # 10000
+    parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based variance reduction')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value to set importance weight')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
-    parser.add_argument('--init_lr', type=float, default=3e-10, help='used to update param in initialization')
-    parser.add_argument('--minibatch_size', type=int, default=1, help='Number of trajectory for warm startup')
+    parser.add_argument('--init_lr', type=float, default=3e-5, help='policy learning rate for initialization')
+    parser.add_argument('--minibatch_size', type=int, default=1, help='number of trajectory for batch gradient')
+    parser.add_argument('--init_minibatch_size', type=int, default=1, help='number of trajectory for batch gradient in initialization')
     args = parser.parse_args()
     return args
 
 
 def run(args, env_name):
     # timestr = str(time()).replace('.', 'p')
-    fpath2 = os.path.join('records', 'mdpgt_logs', str(num_agents) + 'D', 'beta=' + str(args.beta), topology)
+    fpath2 = os.path.join('records', 'mdpgt_logs', str(num_agents) + '_agents', 'beta=' + str(args.beta), topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)
     else:
@@ -45,7 +47,7 @@ def run(args, env_name):
     writer = SummaryWriter(fpath2)
     sample_envs = []
     sample_env = make_particleworld.make_env(env_name, num_agents=args.num_agents, num_landmarks=args.num_landmarks)
-    sample_env.discrete_action_input = True  # set action space to take in discrete numbers 0,1,2,3
+    sample_env.discrete_action_input = True  # set action space to take in discrete numbers 0,1,2,3,4
     sample_env.seed(seed)
     for _ in range(args.num_agents):
         env_copy = copy.deepcopy(sample_env)
@@ -59,19 +61,14 @@ def run(args, env_name):
 
     agents = []
     for i in range(args.num_agents):
-        agents.append(MomentumPG(num_agents=args.num_agents, state_dim=len(sample_obs), action_dim=5, lmbda=args.lmbda,
+        agents.append(MomentumPG(num_agents=args.num_agents, state_dim=len(sample_obs), action_dim=args.action_dim, lmbda=args.lmbda,
                                  critic_lr=args.critic_lr, gamma=args.gamma,
-                                 device=device, min_isw=args.min_isw, beta=args.beta))  # .to(device))
+                                 device=device, min_isw=args.min_isw, beta=args.beta)) 
 
     # load connectivity matrix
     pi = load_pi(num_agents=args.num_agents, topology=args.topology)
 
-    old_policies = []
-    for agent in agents:
-        old_policy = copy.deepcopy(agent.actors)
-        old_policies.append(old_policy)
-
-    prev_v_lists, y_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=1,
+    prev_v_lists, y_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=args.init_minibatch_size,
                                                 max_eps_len=args.max_eps_len)
 
     # TEST: When topo is dense, nums=[0]
@@ -99,12 +96,11 @@ def run(args, env_name):
     for i in range(10):
         with tqdm(total=int(args.num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(args.num_episodes / 10)):
-                phis_list = copy.deepcopy(old_policies)
                 # old_agent is now updated agent
-                old_policies = []
+                phis_list = []
                 for agent in agents:
                     old_policy = copy.deepcopy(agent.actors)
-                    old_policies.append(old_policy)
+                    phis_list.append(old_policy)
 
                 episode_returns = 0
                 v_lists = []
@@ -182,7 +178,7 @@ def run(args, env_name):
 
 
 if __name__ == '__main__':
-    env_name = 'CooperativeNavigation'
+    env_name = 'simple_spread'
     topologies = ['ring']
     betas = [0.2]
     labels = ['beta=0.2']

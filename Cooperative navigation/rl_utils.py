@@ -5,7 +5,9 @@ import json
 import numpy as np
 
 
-###### Load weight matrix
+'''
+Load the connectivity weight matrix.
+'''
 def load_pi(num_agents, topology):
     wsize = num_agents
     if topology == 'dense':
@@ -20,6 +22,9 @@ def load_pi(num_agents, topology):
     return cdict['pi']
 
 
+'''
+Take parameters consensus.
+'''
 def take_param_consensus(agents, pi):
     layer_1_w_lists = []
     layer_1_b_lists = []
@@ -94,6 +99,9 @@ def take_grad_consensus(v_k_lists, pi):
 '''
 
 
+'''
+Take gradient consensus.
+'''
 def take_grad_consensus(grad_lists, pi):
     re_grad_lists = []
 
@@ -103,7 +111,6 @@ def take_grad_consensus(grad_lists, pi):
         for j in range(len(grad_lists)):
             re_grad_list.append(grad_lists[j][i])
         re_grad_lists.append(re_grad_list)
-
 
     consensus_grad_lists = []
     for idx in range(len(grad_lists)):
@@ -115,6 +122,9 @@ def take_grad_consensus(grad_lists, pi):
     return consensus_grad_lists
 
 
+'''
+Update gradient estimator y^{t+1} using gradient tracking.
+'''
 def update_y_lists(y_lists, prev_v_lists, v_lists):
     next_y_lists = []
     for y_list, prev_v_list, v_list in zip(y_lists, prev_v_lists, v_lists):
@@ -126,6 +136,9 @@ def update_y_lists(y_lists, prev_v_lists, v_lists):
     return next_y_lists
 
 
+'''
+Update parameters of an agent.
+'''
 def update_param(agent, v_k_list, lr=3e-4):
     '''update parameters for an agent'''
     for idx, actor in enumerate(agent.actors):
@@ -134,6 +147,9 @@ def update_param(agent, v_k_list, lr=3e-4):
         torch.nn.utils.convert_parameters.vector_to_parameters(new_para, actor.parameters())
 
 
+'''
+Move average for averaged returns.
+'''
 def moving_average(a, window_size):
     cumulative_sum = np.cumsum(np.insert(a, 0, 0))
     middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
@@ -143,6 +159,9 @@ def moving_average(a, window_size):
     return np.concatenate((begin, middle, end))
 
 
+'''
+Calculate advantage function using GAE.
+'''
 def compute_advantage(gamma, lmbda, td_delta):
     td_delta = td_delta.detach().numpy()
     advantage_list = []
@@ -154,11 +173,17 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
+'''
+Obtain the flatted gradients.
+'''
 def get_flat_grad(y: torch.Tensor, model, **kwargs):
     grads = torch.autograd.grad(y, model.parameters(), **kwargs)  # type: ignore
     return torch.cat([grad.reshape(-1) for grad in grads])
 
 
+'''
+Reset gradient shape from the flatted shape.
+'''
 def set_from_flat_grads(model, flat_params):
     prev_ind = 0
     grads = []
@@ -169,6 +194,9 @@ def set_from_flat_grads(model, flat_params):
     return grads
 
 
+'''
+Initialization for traning agents.
+'''
 def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_eps_len=20):
     prev_v_lists, y_lists = [], []
     for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):

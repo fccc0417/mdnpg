@@ -15,27 +15,28 @@ torch.manual_seed(seed)
 
 
 def set_args(num_agents=1, topology='dense'):
-    parser = argparse.ArgumentParser(description='Multi-agent example')
+    parser = argparse.ArgumentParser(description='ValuePropagation')
     parser.add_argument('--num_agents', type=int, default=num_agents, help='Number of agents')
     parser.add_argument('--num_landmarks', type=int, default=num_agents, help='Number of landmarks')
-    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
+    parser.add_argument('--action_dim', type=int, default=5, help='number of actions')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--eta', type=float, default=0.1, help='eta, trade-off parameter')
-    parser.add_argument('--value_lr', type=float, default=3e-4, help='update lr')
-    parser.add_argument('--policy_lr', type=float, default=3e-4, help='update lr')
-    parser.add_argument('--dual_lr', type=float, default=3e-4, help='update lr')
+    parser.add_argument('--value_lr', type=float, default=3e-4, help='value learning rate')
+    parser.add_argument('--policy_lr', type=float, default=3e-4, help='policy learning rate')
+    parser.add_argument('--dual_lr', type=float, default=3e-4, help='dual learning rate')
     parser.add_argument('--lmbda', type=float, default=0.01, help='lambda')
     parser.add_argument('--T_dual', type=float, default=4, help='T_dual')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
-    parser.add_argument('--max_eps_len', type=int, default=20+20, help='Number of steps per episode')
-    parser.add_argument('--n_steps', type=int, default=20, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=20000, help='Number training episodes')
+    parser.add_argument('--max_eps_len', type=int, default=20+20, help='number of steps per episode')
+    parser.add_argument('--n_steps', type=int, default=20, help='step of multi-step TD')
+    parser.add_argument('--num_episodes', type=int, default=20000, help='number training episodes')
     args = parser.parse_args()
     return args
 
 
 def run(args, env_name):
     # timestr = str(time()).replace('.', 'p')
-    fpath2 = os.path.join('records', 'vaule_propagation_logs', str(num_agents) + 'D', topology)
+    fpath2 = os.path.join('records', 'vaule_propagation_logs', str(num_agents) + '_agents', topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)
     else:
@@ -50,14 +51,14 @@ def run(args, env_name):
     print('Action Space:', sample_env.action_space)
     print('Number of agents:', sample_env.n)
     sample_obs = sample_env.reset()
-    sample_obs = np.concatenate(sample_obs).ravel()  # .tolist() #多个智能体需要合并再变成一维
+    sample_obs = np.concatenate(sample_obs).ravel()  
 
     # load connectivity matrix
     pi = load_pi(num_agents=args.num_agents, topology=args.topology)
 
     agents = []
     for _ in range(args.num_agents):
-        agents.append(ValuePropagation(num_agents=args.num_agents, state_dim=len(sample_obs), action_dim=5, pi=pi,
+        agents.append(ValuePropagation(num_agents=args.num_agents, state_dim=len(sample_obs), action_dim=args.action_dim, pi=pi,
                                        eta=args.eta, lmbda=args.lmbda, gamma=args.gamma, T_dual=args.T_dual,
                                        value_lr=args.value_lr, policy_lr=args.policy_lr, dual_lr=args.dual_lr,
                                        n_steps=args.n_steps, max_eps_len=args.max_eps_len))
@@ -152,7 +153,7 @@ def run(args, env_name):
 
 
 if __name__ == '__main__':
-    env_name = 'CooperativeNavigation'
+    env_name = 'simple_spread'
     num_agents = 5
     topologies = ['ring']  #'bipartite', 'ring'
     labels = ['ring'] 

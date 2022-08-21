@@ -46,7 +46,7 @@ class Scenario(BaseScenario):
     #         landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
     #         landmark.state.p_vel = np.zeros(world.dim_p)
 
-    # targeted
+    # modified
     def reset_world(self, world):
         # random properties for agents
         for i, agent in enumerate(world.agents):
@@ -65,7 +65,6 @@ class Scenario(BaseScenario):
             landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
             dist = np.sqrt(np.sum(np.square(landmark.state.p_pos - world.agents[idx].state.p_pos)))
             while dist < 0.25:
-                # print('Resampling new landmark')
                 landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
                 dist = np.sqrt(np.sum(np.square(landmark.state.p_pos - world.agents[idx].state.p_pos)))
             landmark.state.p_vel = np.zeros(world.dim_p)
@@ -112,25 +111,7 @@ class Scenario(BaseScenario):
     #                 rew -= 1
     #     return rew
 
-    # modified reward to return minimum of spread reward
-    # def reward(self, agent, world):
-    #     # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
-    #     done = False
-    #     dists = []
-    #     for l in world.landmarks:
-    #         dists = dists + [-np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))]
-
-    #     rewards = max(dists) #maximum of negative
-        
-    #     if abs(max(dists)) < 0.15:
-    #         done = True
-
-    #     # for a in world.agents:
-    #     #     if self.is_collision(a, agent):
-    #     #         rewards -= 1
-    #     return rewards, done
-
-    # targeted reward
+    # modified reward
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to their own landmark, penalized for collisions
         done = False
@@ -141,33 +122,10 @@ class Scenario(BaseScenario):
             done = True
 
         for a in world.agents:
-            # if a is agent:
-            #     continue
             if self.is_collision(a, agent):
                 rewards -= 1
         return rewards, done
 
     def observation(self, agent, world):
-        # get positions of all entities in this agent's reference frame
-        entity_pos = []
-        for entity in world.landmarks:  # world.entities:
-            entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-        # entity colors
-        entity_color = []
-        for entity in world.landmarks:  # world.entities:
-            entity_color.append(entity.color)
-        # communication of all other agents
-        comm = []
-        other_pos = []
-        for other in world.agents:
-            if other is agent: continue
-            comm.append(other.state.c)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + [agent.landmark - agent.state.p_pos] + other_pos)
         return np.concatenate([agent.state.p_pos] + [agent.landmark - agent.state.p_pos])
-        # return np.concatenate([agent.state.p_pos] + [agent.landmark - agent.state.p_pos] + other_pos)
-        # return np.concatenate([agent.landmark- agent.state.p_pos] + other_pos)
-        # return np.concatenate([agent.state.p_pos] + [agent.landmark])
-
 

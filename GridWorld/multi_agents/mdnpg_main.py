@@ -142,7 +142,7 @@ def run(args):
                 return_list.append(episode_returns)
 
                 # tracking
-                y_list = take_grad_consensus(y_list, pi, agents)
+                y_list = take_grad_consensus(y_list, pi)
                 next_y_list = []
                 for idx, agent in enumerate(agents):
                     y_new = update_y(y_list[idx], v_list[idx], prev_v_list[idx])
@@ -153,7 +153,7 @@ def run(args):
                     direction_grad = agent.compute_precondition_with_y(s_list, y, transition_dict, advantage)
                     update_grad_list.append(direction_grad)
 
-                consensus_grad_list = take_grad_consensus(update_grad_list, pi, agents)
+                consensus_grad_list = take_grad_consensus(update_grad_list, pi)
                 agents = take_param_consensus(agents, pi)
 
                 for agent, grad in zip(agents, consensus_grad_list):

@@ -4,7 +4,9 @@ import json
 import numpy as np
 
 
-###### Function related to topology and pi
+'''
+Load the connectivity weight matrix.
+'''
 def load_pi(num_agents, topology):
     wsize = num_agents
     if topology == 'dense':
@@ -19,6 +21,9 @@ def load_pi(num_agents, topology):
     return cdict['pi']
 
 
+'''
+Take parameters consensus.
+'''
 def take_param_consensus(agents, pi):
     layer_1_w = []
     layer_1_b = []
@@ -57,13 +62,15 @@ def take_param_consensus(agents, pi):
         #                                    0).clone()
     return agents
 
-
-def take_grad_consensus(v_k_list_flat, pi, agents):
-    consensus_v_k = []
-    for j in range(len(v_k_list_flat)):
-        v_k_cons = torch.sum(torch.stack(tuple(v_k_list_flat)) * torch.tensor(pi[j]).unsqueeze(-1), 0).clone()
-        consensus_v_k.append(v_k_cons)
-    return consensus_v_k
+'''
+Take gradient consensus.
+'''
+def take_grad_consensus(grad_list_flat, pi):
+    consensus_grads = []
+    for j in range(len(grad_list_flat)):
+        grad_cons = torch.sum(torch.stack(tuple(grad_list_flat)) * torch.tensor(pi[j]).unsqueeze(-1), 0).clone()
+        consensus_grads.append(grad_cons)
+    return consensus_grads
 
 
 def update_param(agent, obj_grad, lr=3e-4):
