@@ -12,7 +12,7 @@ import os
 
 seed = 3
 torch.manual_seed(seed)
-device = torch.device("cpu")  # torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+device = torch.device("cpu")  
 
 
 def set_args(num_agents=1, beta=0.2, topology='dense'):
@@ -51,18 +51,11 @@ def run(args, env_name):
         env_copy = copy.deepcopy(sample_env)
         sample_envs.append(env_copy)
 
-    # sample_envs = []
-    # for _ in range(args.num_agents):
-    #     sample_env = make_particleworld.make_env(env_name, num_agents=args.num_agents, num_landmarks=args.num_landmarks)
-    #     sample_env.discrete_action_input = True  # set action space to take in discrete numbers 0,1,2,3
-    #     sample_env.seed(seed)
-    #     sample_envs.append(sample_env)
-
     print('observation Space:', sample_env.observation_space)
     print('Action Space:', sample_env.action_space)
     print('Number of agents:', sample_env.n)
     sample_obs = sample_env.reset()
-    sample_obs = np.concatenate(sample_obs).ravel()  # .tolist() #多个智能体需要合并再变成一维
+    sample_obs = np.concatenate(sample_obs).ravel()  
 
     agents = []
     for i in range(args.num_agents):
@@ -92,13 +85,6 @@ def run(args, env_name):
     #         nums.append(num)
     #     numss.append(nums)
     # print(numss)
-
-    # envs = []
-    # for _ in range(args.num_agents):
-    #     env = make_particleworld.make_env(env_name, num_agents=args.num_agents, num_landmarks=args.num_landmarks)
-    #     env.discrete_action_input = True
-    #     env.seed(seed)
-    #     envs.append(env)
 
     envs = []
     env = make_particleworld.make_env(env_name, num_agents=args.num_agents, num_landmarks=args.num_landmarks)
@@ -197,10 +183,10 @@ def run(args, env_name):
 
 
 if __name__ == '__main__':
-    env_name = 'simple_spread'
-    topologies = ['dense', 'bipartite', 'ring']
-    betas = [0.2, 0.2, 0.2]
-    labels = ['beta=0.2', 'beta=0.2', 'beta=0.2']
+    env_name = 'CooperativeNavigation'
+    topologies = ['ring']
+    betas = [0.2]
+    labels = ['beta=0.2']
     num_agents = 5
     return_lists = []
     mv_return_lists = []
@@ -208,8 +194,8 @@ if __name__ == '__main__':
 
     for beta, label, topology in zip(betas, labels, topologies):
         args = set_args(num_agents=num_agents, beta=beta, topology=topology)
-        fpath = os.path.join('mdpgt_results', env_name, str(num_agents) + 'D',
-                             'beta=' + str(beta) + '_' + topology)  # + '_' + timestr
+        fpath = os.path.join('mdpgt_results', env_name, str(num_agents) + '_agents',
+                             label + '_' + topology)  # + '_' + timestr
         if not os.path.isdir(fpath):
             os.makedirs(fpath)
         print(f"beta={beta}")
@@ -223,33 +209,4 @@ if __name__ == '__main__':
         mv_return_lists.append(mv_return_list)
         error_lists.append(error_list)
 
-    plt.figure()
-    for return_list, label in zip(return_lists, labels):
-        plt.plot(return_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('{}-agent Momentum PG with GT on {} (discrete)'.format(num_agents, env_name))
-    plt.savefig(os.path.join(fpath, 'return.jpg'))
-    plt.show()
-
-    plt.figure()
-    for return_list, label in zip(mv_return_lists, labels):
-        plt.plot(return_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('{}-agent Momentum PG with GT on {} (discrete)'.format(num_agents, env_name))
-    plt.legend()
-    plt.savefig(os.path.join(fpath, 'avg_return.jpg'))
-    plt.show()
-
-    plt.figure()
-    for error, label in zip(error_lists, labels):
-        plt.plot(error, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Errors')
-    plt.title('{}-agent Momentum PG with GT on {} (discrete)'.format(num_agents, env_name))
-    plt.legend()
-    plt.savefig(os.path.join(fpath, 'error.jpg'))
-    plt.show()
 
