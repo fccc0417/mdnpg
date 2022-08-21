@@ -18,8 +18,8 @@ map_path_2 = "../envs/grid_maps/map_2.npy"
 map_path_3 = "../envs/grid_maps/map_3.npy"
 map_path_4 = "../envs/grid_maps/map_4.npy"
 map_paths = [map_path_0, map_path_1, map_path_2, map_path_3, map_path_4]
-seeds = [0, 1, 2, 3, 4]
-seed = 0
+seeds = [6, 7, 8, 9, 10]
+seed = 11
 device = torch.device("cpu")
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -39,7 +39,7 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
     parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
     parser.add_argument('--init_minibatch_size', type=int, default=32, help='Number of trajectory for warm startup')
-    parser.add_argument('--random_loc', type=bool, default=True, help='Each episode use random initial location')
+    parser.add_argument('--random_loc', type=bool, default=False, help='Each episode use random initial location')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='interval between training status logs (default: 10)')
     args = parser.parse_args()

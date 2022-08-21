@@ -68,6 +68,11 @@ def run(args, env_name):
     # load connectivity matrix
     pi = load_pi(num_agents=args.num_agents, topology=args.topology)
 
+    old_policies = []
+    for agent in agents:
+        old_policy = copy.deepcopy(agent.actors)
+        old_policies.append(old_policy)
+
     prev_v_lists, y_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=args.init_minibatch_size,
                                                 max_eps_len=args.max_eps_len)
 
@@ -96,11 +101,12 @@ def run(args, env_name):
     for i in range(10):
         with tqdm(total=int(args.num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(args.num_episodes / 10)):
+                phis_list = copy.deepcopy(old_policies)
                 # old_agent is now updated agent
-                phis_list = []
+                old_policies = []
                 for agent in agents:
                     old_policy = copy.deepcopy(agent.actors)
-                    phis_list.append(old_policy)
+                    old_policies.append(old_policy)
 
                 episode_returns = 0
                 v_lists = []
