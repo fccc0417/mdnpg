@@ -152,10 +152,10 @@ def run(args, env_name):
 
 
 if __name__ == '__main__':
-    env_name = 'simple_spread'
+    env_name = 'CooperativeNavigation'
     num_agents = 5
-    topologies = ['ring', 'dense', 'bipartite']
-    labels = ['ring', 'dense', 'bipartite'] #, 'bipartite', 'ring'
+    topologies = ['ring']  #'bipartite', 'ring'
+    labels = ['ring'] 
     return_lists = []
     mv_return_lists = []
 
@@ -176,24 +176,4 @@ if __name__ == '__main__':
 
         for idx, agent in enumerate(agents):
             torch.save(agent, os.path.join(fpath, 'agent' + str(idx) + '.pth'))
-
-    plt.figure()
-    for return_list, label in zip(return_lists, labels):
-        plt.plot(return_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('{}-agent Value Propagation on {} (discrete)'.format(num_agents, env_name))
-    plt.savefig(os.path.join(fpath, 'return.jpg'))
-    plt.show()
-
-    plt.figure()
-    for return_list, label in zip(mv_return_lists, labels):
-        plt.plot(return_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('{}-agent Value Propagation on {} (discrete)'.format(num_agents, env_name))
-    plt.legend()
-    plt.savefig(os.path.join(fpath, 'avg_return.jpg'))
-    plt.show()
 
