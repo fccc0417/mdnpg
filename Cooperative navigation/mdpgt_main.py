@@ -146,7 +146,6 @@ def run(args, env_name):
                             episode_returns += np.sum(rewards[idx])
                             reset = t == args.max_eps_len - 1
                             if done or reset:
-                                # print('Batch Initial Trajectory ' + str(i) + ': Reward', episode_return, 'Done', done)
                                 break
 
                         advantage = agent.update_value(transition_dict)

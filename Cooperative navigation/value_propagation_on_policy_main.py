@@ -11,7 +11,7 @@ import os
 
 seed = 4
 torch.manual_seed(seed)
-# device = torch.device("cpu")  # torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+# device = torch.device("cpu")  
 
 
 def set_args(num_agents=1, topology='dense'):
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
     for label, topology in zip(labels, topologies):
         args = set_args(num_agents=num_agents, topology=topology)
-        fpath = os.path.join('vaule_propagation_results', env_name, str(num_agents) + 'D',
+        fpath = os.path.join('vaule_propagation_results', env_name, str(num_agents) + '_agents',
                               topology)
         if not os.path.isdir(fpath):
             os.makedirs(fpath)
