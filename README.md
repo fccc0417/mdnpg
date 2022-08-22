@@ -66,8 +66,8 @@ Code for paper "....."
 ├─ MountainCar　# Experiments on MountainCarContinuous.    
 │　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
 │　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
-│　　├─ ppo_continuous.py　# PPO [[REF](https://github.com/boyu-ai/Hands-on-RL)].
+│　　├─ ppo_continuous.py　# PPO [[REF](https://github.com/boyu-ai/Hands-on-RL)].  
 │　　└─ svrnpg_continuous.py　# SRVR-NPG.  
-└─ README.md
+└─ README.md  
 
 
