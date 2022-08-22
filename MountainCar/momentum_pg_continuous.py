@@ -3,7 +3,6 @@ from tqdm import tqdm
 import torch
 import numpy as np
 import gym
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import copy
 import os
@@ -202,17 +201,16 @@ class Momentum_PG_Continuous:
 
 
 def set_args(beta=0.2, seed=0):
-    parser = argparse.ArgumentParser(description='MPG')
-    parser.add_argument('--gamma', type=float, default=0.999, help='discount factor (default: 0.99)')
-    parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='critic_lr')
+    parser = argparse.ArgumentParser(description='Momentum-based PG')
+    parser.add_argument('--gamma', type=float, default=0.999, help='discount factor')
+    parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='value learning rate')
     parser.add_argument('--lmbda', type=float, default=1, help='lambda')
-    parser.add_argument('--actor_lr', type=float, default=5e-4, help='actor_lr')
-    parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
-    # parser.add_argument('--max_eps_len', type=int, default=20, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=5000, help='Number training episodes')
-    parser.add_argument('--beta', type=float, default=beta, help='Beta term for surrogate gradient')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
-    parser.add_argument('--minibatch_size', type=int, default=1, help='Number of trajectory for warm startup')
+    parser.add_argument('--actor_lr', type=float, default=5e-4, help='policy learning rate')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed')
+    parser.add_argument('--num_episodes', type=int, default=5000, help='number of training episodes')
+    parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum importance weight')
+    parser.add_argument('--minibatch_size', type=int, default=1, help='number of trajectory for batch gradient in initialization')
     args = parser.parse_args()
     return args
 
@@ -229,7 +227,7 @@ def run(beta, env_name, seed):
     minibatch_size = args.minibatch_size
     critic_lr = args.critic_lr
     actor_lr = args.actor_lr
-    device = torch.device("cpu") #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     sample_env = gym.make(env_name)
     agent = Momentum_PG_Continuous(sample_env.observation_space, sample_env.action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr)
     old_policy = copy.deepcopy(agent.actor)
@@ -242,7 +240,6 @@ def run(beta, env_name, seed):
         with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
                 phi = copy.deepcopy(old_policy)
-                # old_agent is now updated agent
                 old_policy = copy.deepcopy(agent.actor)
                 episode_return = 0
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
@@ -273,38 +270,13 @@ def run(beta, env_name, seed):
 
 if __name__ == '__main__':
     env_name = 'MountainCarContinuous-v0'
-    betas = [0.8, 0.8]  # [0.2, 0.4, 0.6, 0.8, 1]
-    labels = ['beta=0.8', 'beta=0.8']  #['beta=0.2', 'beta=0.4', 'beta=0.6', 'beta=0.8', 'beta=1']
-    seeds = [6]
-    return_lists = []
-    mv_return_lists = []
+    betas = [0.8]
+    labels = ['beta=0.8']
+    seeds = [0]
 
-    for beta, seed in zip(betas, seeds):
+
+    for beta, seed, label in zip(betas, seeds, labels):
         print(f"beta={beta}, seed={seed}")
         return_list, mv_return_list = run(beta, env_name, seed)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
-
-    plt.figure()
-    for return_list, label, seed in zip(return_lists, labels, seeds):
-        plt.plot(return_list, label=label)
-        # np.save(os.path.join('records/'+label+'_pg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('PG on {}'.format(env_name))
-    # plt.savefig('records/pg_discrete_1.jpg')
-    plt.show()
-
-    plt.figure()
-    for return_list, label, seed in zip(mv_return_lists, labels, seeds):
-        plt.plot(return_list, label=label)
-        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_'+'_'+label+'_pg_avg_return.npy'), return_list)
-
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('PG on {}'.format(env_name))
-    plt.legend()
-    plt.savefig(os.path.join('records/' + env_name + '_' + label + '_pg.jpg'))
-    plt.show()
+        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_'+'_'+label+'_pg_avg_return.npy'), mv_return_list)
 

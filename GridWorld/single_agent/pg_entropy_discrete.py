@@ -1,20 +1,13 @@
+"""
+Paper: "A Decentralized Policy Gradient Approach to Multi-Task Reinforcement Learning"
+"""
 import argparse
 from tqdm import tqdm
 import torch
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
-import copy
 import os
-# from envs.gridworld_4_test import GridWorldEnv
 from GridWorld.envs.gridworld import GridWorldEnv
 from GridWorld.envs.init_agent_pos_4_single import *
-
-map_path_0 = "../envs/grid_maps/map_0.npy"
-map_path_1 = "../envs/grid_maps/map_1.npy"
-map_path_2 = "../envs/grid_maps/map_2.npy"
-map_path_3 = "../envs/grid_maps/map_3.npy"
-map_path_4 = "../envs/grid_maps/map_4.npy"
 
 
 def moving_average(a, window_size):
@@ -60,7 +53,7 @@ class ValueNet(torch.nn.Module):
 
 
 class PGwithEntropy:
-    """ Momentum PG算法 """
+    """ Momentum-based PG """
     def __init__(self, state_space, action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr):
         self.state_dim = state_space.shape[0]
         self.action_dim = action_space.n
@@ -80,7 +73,7 @@ class PGwithEntropy:
         action = action_dist.sample()
         return action.item()
 
-    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  # 计算策略目标
+    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):
         log_probs = torch.log(actor(states).gather(1, actions))
         ratio = torch.exp(log_probs - old_log_probs)
         return torch.mean(ratio * advantage)
@@ -94,7 +87,7 @@ class PGwithEntropy:
         obj_grad = torch.cat([grad.view(-1) for grad in grads]).detach()
         return obj_grad
 
-    def policy_learn(self, transition_dict, advantage, lr):  # 更新策略函数
+    def policy_learn(self, transition_dict, advantage, lr):
         obj_grad = self.compute_grads(transition_dict, advantage)
         old_para = torch.nn.utils.convert_parameters.parameters_to_vector(self.actor.parameters())
         new_para = old_para + lr * obj_grad
@@ -115,8 +108,9 @@ class PGwithEntropy:
         critic_loss = torch.mean(F.mse_loss(self.critic(states), td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()  # 更新价值函数
+        self.critic_optimizer.step()
 
+        # Add entropy penalty to the advantage function.
         log_probs_all = torch.log(self.actor(states))
         advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
         sum_log_probs = torch.sum(log_probs_all, dim=1)
@@ -124,20 +118,19 @@ class PGwithEntropy:
         entropy_term = self.entropy_para * entropy_term
         return advantage + entropy_term
 
-######################################################################
 
 def set_args(seed=0):
-    parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
-    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
-    parser.add_argument('--critic_lr', type=float, default=1e-2, help='critic_lr')
+    parser = argparse.ArgumentParser(description='Single agent PG with entropy')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
     parser.add_argument('--entropy_para', type=float, default=0.1, help='entropy parameter')
-    parser.add_argument('--actor_lr', type=float, default=8e-5, help='actor_lr')  #1e-4
-    parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
-    parser.add_argument('--num_agents', type=int, default=1, help='Number of agents')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=2000, help='Number training episodes')
-    parser.add_argument('--random_loc', type=bool, default=True, help='Each episode use random initial location')
+    parser.add_argument('--actor_lr', type=float, default=8e-5, help='policy learning rate')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed')
+    parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
+    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
+    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -154,10 +147,9 @@ def run(seed):
     critic_lr = args.critic_lr
     actor_lr = args.actor_lr
     max_eps_len = args.max_eps_len
-    device = torch.device("cpu") #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     agent_pos = np.random.randint(0, 10, 2)
     env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
-    # env = GridWorldEnv(grid_map_path=map_path_4)
     agent = PGwithEntropy(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr)
     return_list = []
 
@@ -197,36 +189,11 @@ def run(seed):
 if __name__ == '__main__':
     env_name = 'GridWorld'
     seeds = [0]
-    return_lists = []
-    mv_return_lists = []
     agent_pos = np.array([3,6])
 
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list, agent = run(seed)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
+        np.save(os.path.join('records/' + env_name+'_' + str(seed)+'_' + '_pg_entrpoy_avg_return.npy'), mv_return_list)
         torch.save(agent, os.path.join('agents/'+'pgen_agent_'+str(seed)+'.pth'))
-
-    plt.figure()
-    for return_list, seed in zip(return_lists, seeds):
-        plt.plot(return_list)
-        # np.save(os.path.join('records/'+label+'_pg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('PG_Entropy on {}'.format(env_name))
-    # plt.savefig('records/pg_discrete_1.jpg')
-    plt.show()
-
-    plt.figure()
-    for return_list, seed in zip(mv_return_lists, seeds):
-        plt.plot(return_list)
-        np.save(os.path.join('records/' + env_name+'_' + str(seed)+'_' + '_pg_entrpoy_avg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('PG_Entropy on {}'.format(env_name))
-    plt.legend()
-    plt.savefig(os.path.join('records/' + env_name + '_' + '_pg_entrpoy.jpg'))
-    plt.show()
 

@@ -1,21 +1,11 @@
 import argparse
 from tqdm import tqdm
 import torch
-import numpy as np
-import gym
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import copy
 import os
-# from envs.gridworld_4_test import GridWorldEnv
 from GridWorld.envs.gridworld import GridWorldEnv
 from GridWorld.envs.init_agent_pos_4_single import *
-
-map_path_0 = "../envs/grid_maps/map_0.npy"
-map_path_1 = "../envs/grid_maps/map_1.npy"
-map_path_2 = "../envs/grid_maps/map_2.npy"
-map_path_3 = "../envs/grid_maps/map_3.npy"
-map_path_4 = "../envs/grid_maps/map_4.npy"
 
 
 def moving_average(a, window_size):
@@ -47,7 +37,7 @@ def initialization(sample_env, agent, max_eps_len=150, lr=1e-4, minibatch=10):
         state = sample_env.reset()
         done = False
 
-        for t in range(max_eps_len): #while not(done): #for t in range(max_eps_len): #
+        for t in range(max_eps_len):
             action = agent.take_action(state)
             next_state, reward, done, _ = sample_env.step(action)
             transition_dict['states'].append(state)
@@ -64,7 +54,7 @@ def initialization(sample_env, agent, max_eps_len=150, lr=1e-4, minibatch=10):
         single_traj_grads = agent.compute_grads(transition_dict, advantage)
         minibatch_grads.append(single_traj_grads)
 
-    prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  #np.mean(minibatch_grads) or x.mean() # average across batch
+    prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
 
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
     new_para = old_para + lr * prev_v
@@ -94,21 +84,19 @@ class ValueNet(torch.nn.Module):
         return self.fc2(x)
 
 
-class Momentum_TRPO:
-    """ TRPO算法 """
+class Momentum_NPG:
+    """Momentum-based NPG for single agent."""
     def __init__(self,  state_space, action_space, lmbda,
                  kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta):
         state_dim = state_space.shape[0]
         action_dim = action_space.n
-        # 策略网络参数不需要优化器更新
         self.actor = PolicyNet(state_dim, action_dim).to(device)
         self.critic = ValueNet(state_dim).to(device)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
-                                                 lr=critic_lr)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
-        self.kl_constraint = kl_constraint  # KL距离最大限制
-        self.alpha = alpha  # 线性搜索参数
+        self.lmbda = lmbda
+        self.kl_constraint = kl_constraint
+        self.alpha = alpha
         self.device = device
         self.min_isw = min_isw
         self.beta = beta
@@ -121,28 +109,21 @@ class Momentum_TRPO:
         return action.item()
 
     def hessian_matrix_vector_product(self, states, old_action_dists, vector):
-        # 计算黑塞矩阵和一个向量的乘积
         new_action_dists = torch.distributions.Categorical(self.actor(states))
-        kl = torch.mean(
-            torch.distributions.kl.kl_divergence(old_action_dists,
-                                                 new_action_dists))  # 计算平均KL距离
-        kl_grad = torch.autograd.grad(kl,
-                                      self.actor.parameters(),
-                                      create_graph=True)
+        kl = torch.mean(torch.distributions.kl.kl_divergence(old_action_dists,new_action_dists))
+        kl_grad = torch.autograd.grad(kl, self.actor.parameters(), create_graph=True)
         kl_grad_vector = torch.cat([grad.view(-1) for grad in kl_grad])
-        # KL距离的梯度先和向量进行点积运算
         kl_grad_vector_product = torch.dot(kl_grad_vector, vector)
-        grad2 = torch.autograd.grad(kl_grad_vector_product,
-                                    self.actor.parameters())
+        grad2 = torch.autograd.grad(kl_grad_vector_product, self.actor.parameters())
         grad2_vector = torch.cat([grad.view(-1) for grad in grad2])
-        return grad2_vector + 0.1*vector  #+ 0.1*vector
+        return grad2_vector + 0.1*vector
 
-    def conjugate_gradient(self, grad, states, old_action_dists):  # 共轭梯度法求解方程
+    def conjugate_gradient(self, grad, states, old_action_dists):
         x = torch.zeros_like(grad)
         r = grad.clone()
         p = grad.clone()
         rdotr = torch.dot(r, r)
-        for i in range(10):  # 共轭梯度主循环
+        for i in range(10):
             Hp = self.hessian_matrix_vector_product(states, old_action_dists, p)
             alpha = rdotr / torch.dot(p, Hp)
             x += alpha * p
@@ -155,30 +136,22 @@ class Momentum_TRPO:
             rdotr = new_rdotr
         return x
 
-    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  # 计算策略目标
+    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):
         log_probs = torch.log(actor(states).gather(1, actions))
         ratio = torch.exp(log_probs - old_log_probs)
         return torch.mean(ratio * advantage)
 
-    def line_search(self, states, actions, advantage, old_log_probs,
-                    old_action_dists, max_vec):  # 线性搜索
-        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(
-            self.actor.parameters())
-        old_obj = self.compute_surrogate_obj(states, actions, advantage,
-                                             old_log_probs, self.actor)
-        for i in range(15):  # 线性搜索主循环
+    def line_search(self, states, actions, advantage, old_log_probs, old_action_dists, max_vec):
+        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(self.actor.parameters())
+        old_obj = self.compute_surrogate_obj(states, actions, advantage, old_log_probs, self.actor)
+        for i in range(15):
             coef = self.alpha**i
             new_para = old_para + coef * max_vec
             new_actor = copy.deepcopy(self.actor)
-            torch.nn.utils.convert_parameters.vector_to_parameters(
-                new_para, new_actor.parameters())
-            new_action_dists = torch.distributions.Categorical(
-                new_actor(states))
-            kl_div = torch.mean(
-                torch.distributions.kl.kl_divergence(old_action_dists,
-                                                     new_action_dists))
-            new_obj = self.compute_surrogate_obj(states, actions, advantage,
-                                                 old_log_probs, new_actor)
+            torch.nn.utils.convert_parameters.vector_to_parameters(new_para, new_actor.parameters())
+            new_action_dists = torch.distributions.Categorical(new_actor(states))
+            kl_div = torch.mean(torch.distributions.kl.kl_divergence(old_action_dists,new_action_dists))
+            new_obj = self.compute_surrogate_obj(states, actions, advantage, old_log_probs, new_actor)
             if new_obj > old_obj and kl_div < self.kl_constraint:
                 return new_para
         return old_para
@@ -213,7 +186,7 @@ class Momentum_TRPO:
         grad_surrogate = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
         return grad_surrogate
 
-    def policy_learn(self, transition_dict, advantage, prev_v, phi):  # 更新策略函数
+    def policy_learn(self, transition_dict, advantage, prev_v, phi):
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
         old_log_probs = torch.log(self.actor(states).gather(1, actions)).detach()
@@ -224,57 +197,48 @@ class Momentum_TRPO:
         obj_grad = self.compute_grads(transition_dict, advantage)
         grad_v = self.compute_v(obj_grad, prev_v, isw, prev_g, self.beta)
 
-        # 用共轭梯度法计算x = H^(-1)g
         descent_direction = self.conjugate_gradient(grad_v, states, old_action_dists)
 
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
-        max_coef = torch.sqrt(2 * self.kl_constraint /
-                              (torch.dot(descent_direction, Hd) + 1e-8))
-        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(
-            self.actor.parameters())
+
+        max_coef = torch.sqrt(2 * self.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
         new_para = self.line_search(states, actions, advantage, old_log_probs, old_action_dists,
-                                    descent_direction * max_coef)  # 线性搜索
-        # lr = 1e-5
-        # new_para = old_para + descent_direction * max_coef * lr
-        torch.nn.utils.convert_parameters.vector_to_parameters(
-            new_para, self.actor.parameters())  # 用线性搜索后的参数更新策略
+                                    descent_direction * max_coef)
+
+        torch.nn.utils.convert_parameters.vector_to_parameters(new_para, self.actor.parameters())
         return grad_v
 
     def update_value(self, transition_dict):
-        states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        rewards = torch.tensor(transition_dict['rewards'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
-        next_states = torch.tensor(transition_dict['next_states'],
-                                   dtype=torch.float).to(self.device)
-        dones = torch.tensor(transition_dict['dones'],
-                             dtype=torch.float).view(-1, 1).to(self.device)
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         td_delta = td_target - self.critic(states)
         critic_loss = torch.mean(F.mse_loss(self.critic(states), td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()  # 更新价值函数
+        self.critic_optimizer.step()
 
         advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
         return advantage
 
 
 def set_args(beta=0.2, seed=0):
-    parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
-    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
+    parser = argparse.ArgumentParser(description='Single agent momentum NPG')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
-    parser.add_argument('--critic_lr', type=float, default=1e-2, help='critic_lr')
+    parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--kl_constraint', type=float, default=8e-5, help='kl_constraint')
-    parser.add_argument('--alpha', type=float, default=0.1, help='alpha')  # 0.002
-    parser.add_argument('--actor_lr', type=float, default=1e-4, help='actor_lr')  #3e-3
-    parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=2000, help='Number training episodes')
-    parser.add_argument('--beta', type=float, default=beta, help='Beta term for surrogate gradient')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
-    parser.add_argument('--minibatch_size', type=int, default=32, help='Number of trajectory for warm startup')
-    parser.add_argument('--random_loc', type=bool, default=True, help='Each episode use random initial location')
+    parser.add_argument('--alpha', type=float, default=0.1, help='alpha')
+    parser.add_argument('--actor_lr', type=float, default=1e-4, help='policy learning rate used in initialization')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed')
+    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
+    parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
+    parser.add_argument('--minibatch_size', type=int, default=32, help='number of trajectory for batach gradients in initialization')
+    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -295,11 +259,10 @@ def run(beta, seed):
     kl_constraint = args.kl_constraint
     max_eps_len = args.max_eps_len
     alpha = args.alpha
-    device = torch.device("cpu") #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     agent_pos = np.random.randint(0, 10, 2)
     env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
-    # env = GridWorldEnv(grid_map_path=map_path_4)
-    agent = Momentum_TRPO(env.observation_space, env.action_space, lmbda, kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta)
+    agent = Momentum_NPG(env.observation_space, env.action_space, lmbda, kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta)
     old_policy = copy.deepcopy(agent.actor)
     prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)
 
@@ -344,38 +307,13 @@ def run(beta, seed):
 
 if __name__ == '__main__':
     env_name = 'GridWolrld'
-    betas = [0.6]  # [0.2, 0.4, 0.6, 0.8, 1] [0.8, 0.8, 0.8]
-    labels = ['beta=0.6', 'beta=0.6', 'beta=0.6', 'beta=0.6', 'beta=0.6'] #['beta=0.2', 'beta=0.4', 'beta=0.6', 'beta=0.8', 'beta=1'] ['beta=0.8', 'beta=0.8', 'beta=0.8']
-    seeds = [1]  #[6, 7, 8, 9, 10]
-    return_lists = []
-    mv_return_lists = []
+    betas = [0.6]
+    labels = ['beta=0.6']
+    seeds = [1]
 
-    for beta, seed in zip(betas, seeds):
+    for beta, label, seed in zip(betas, labels, seeds):
         print(f"beta={beta}, seed={seed}")
         return_list, mv_return_list, agent = run(beta, seed)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
+        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_'+label+'_npg_avg_return.npy'), mv_return_list)
         torch.save(agent, os.path.join('agents/'+'npg_agent_'+str(seed)+'.pth'))
 
-    plt.figure()
-    for return_list, label, seed in zip(return_lists, labels, seeds):
-        plt.plot(return_list, label=label)
-        # np.save(os.path.join('records/'+label+'_trpo_return.npy'), return_list)
-
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('TRPO on {}'.format(env_name))
-    # plt.savefig('records/trpo_discrete_1.jpg')
-    plt.show()
-
-    plt.figure()
-    for return_list, label, seed in zip(mv_return_lists, labels, seeds):
-        plt.plot(return_list, label=label)
-        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_'+label+'_trpo_avg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('TRPO on {}'.format(env_name))
-    plt.legend()
-    plt.savefig(os.path.join('records/'+env_name+ '_'+ label+'_trpo.jpg'))
-    plt.show()

@@ -58,7 +58,7 @@ class MomentumNPG:
         return old_log_probs_list, log_probs_list
 
     def compute_grads(self, advantage, old_log_probs_list, log_probs_list):
-        """Calculate gradients for the objective function."""
+        """Calculate gradients for the advantage function."""
         obj_grad_list = []
         for actor, old_log_probs, log_probs in zip(self.actors, old_log_probs_list, log_probs_list):
             ratio = torch.exp(log_probs - old_log_probs)

@@ -9,45 +9,37 @@ import torch
 import copy
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-# from envs.gridworld_4_test import GridWorldEnv
 from GridWorld.envs.init_agent_pos_4_all_envs import *
 
-map_path_0 = "../envs/grid_maps/map_0.npy"
-map_path_1 = "../envs/grid_maps/map_1.npy"
-map_path_2 = "../envs/grid_maps/map_2.npy"
-map_path_3 = "../envs/grid_maps/map_3.npy"
-map_path_4 = "../envs/grid_maps/map_4.npy"
-map_paths = [map_path_0, map_path_1, map_path_2, map_path_3, map_path_4]
+
 seeds = [6, 7, 8, 9, 10]
 seed = 11
 device = torch.device("cpu")
 np.random.seed(seed)
 torch.manual_seed(seed)
 
+
 def set_args(num_agents=1, beta=0.2, topology='dense'):
-    parser = argparse.ArgumentParser(description='Multi-agent example')
-    parser.add_argument('--num_agents', type=int, default=num_agents, help='Number of agents')
-    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
-    parser.add_argument('--critic_lr', type=float, default=1e-2, help='critic_lr')
-    parser.add_argument('--grad_lr', type=float, default=5e-4, help='used to update params')
-    parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
-    parser.add_argument('--kl_constraint', type=float, default=1e-5, help='kl_constraint') # 0.0005  5e-5
-    parser.add_argument('--alpha', type=float, default=0.01, help='alpha')
-    parser.add_argument('--max_eps_len', type=int, default=100, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=10000, help='Number training episodes')
-    parser.add_argument('--beta', type=float, default=beta, help='Beta term for surrogate gradient')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
+    parser = argparse.ArgumentParser(description='MDNPG')
+    parser.add_argument('--num_agents', type=int, default=num_agents, help='number of agents')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
+    parser.add_argument('--grad_lr', type=float, default=5e-4, help='policy learning rate in initialization')
+    parser.add_argument('--lmbda', type=float, default=0.95, help='lambda for GAE')
+    parser.add_argument('--kl_constraint', type=float, default=1e-5, help='kl_constraint for NPG')
+    parser.add_argument('--alpha', type=float, default=0.01, help='alpha for line search')
+    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--num_episodes', type=int, default=10000, help='number of training episodes')
+    parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
-    parser.add_argument('--init_minibatch_size', type=int, default=32, help='Number of trajectory for warm startup')
-    parser.add_argument('--random_loc', type=bool, default=False, help='Each episode use random initial location')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='interval between training status logs (default: 10)')
+    parser.add_argument('--init_minibatch_size', type=int, default=32, help='number of trajectories for batch gradients')
+    parser.add_argument('--random_loc', type=bool, default=False, help='whether each episode uses a random initial location for all agents')
     args = parser.parse_args()
     return args
 
-def run(args):
-    # timestr = str(time()).replace('.', 'p')
 
+def run(args):
     fpath2 = os.path.join('records', 'mdnpg_logs', str(num_agents) + 'D', 'beta=' + str(args.beta), topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)
@@ -61,7 +53,6 @@ def run(args):
     print(agent_pos)
     for i in range(args.num_agents):
         env = GridWorldEnv(seed=seeds[i], agent_pos=agent_pos)
-        # env = GridWorldEnv(grid_map_path=map_paths[i])
         envs.append(env)
         agents.append(MomentumNPG(state_space=env.observation_space, action_space=env.action_space, lmbda=args.lmbda,
                                   kl_constraint=args.kl_constraint, alpha=args.alpha,
@@ -71,7 +62,7 @@ def run(args):
     print('observation Space:', env.observation_space)
     print('Action Space:', env.action_space)
 
-    # create weight matrix
+    # Generate weight matrix.
     pi = load_pi(num_agents=args.num_agents, topology=args.topology)
 
     old_policies = []
@@ -79,6 +70,7 @@ def run(args):
         old_policy = copy.deepcopy(agent.actor)
         old_policies.append(old_policy)
 
+    # Initialization.
     prev_v_list, y_list = initialization_gt(sample_envs=envs, agents=agents, pi=pi, lr=args.grad_lr, minibatch_size=args.init_minibatch_size,
                                            max_eps_len=args.max_eps_len)
 
@@ -87,14 +79,14 @@ def run(args):
     for i in range(10):
         with tqdm(total=int(args.num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(args.num_episodes / 10)):
+                # Copy old policies.
                 phi_list = copy.deepcopy(old_policies)
-                # old_agent is now updated agent
                 old_policies = []
                 for agent in agents:
                     old_policy = copy.deepcopy(agent.actor)
                     old_policies.append(old_policy)
 
-                # consensus error
+                # Consensus error.
                 errors = 0
                 para_list = []
                 for agent in agents:
@@ -111,9 +103,13 @@ def run(args):
                 states_lists = []
                 transition_dicts = []
                 advantage_list = []
+
+                # Whether randomly generate the initial location of agents.
                 if args.random_loc:
                     agent_pos = agent_pos_reset_4_envs(envs)
+
                 for idx, (agent, env) in enumerate(zip(agents, envs)):
+                    # Sample an episode.
                     states_list = []
                     transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
                     state = env.reset()
@@ -132,32 +128,37 @@ def run(args):
                         if done or reset:
                             break
 
+                    # Generate gradient estimator based on momentum-based variance reduction.
                     advantage = agent.update_value(transition_dict)
                     single_traj_v = agent.compute_v(transition_dict, advantage, prev_v_list[idx], phi_list[idx], args.beta)
                     v_list.append(single_traj_v)
+
                     states_lists.append(states_list)
                     transition_dicts.append(transition_dict)
                     advantage_list.append(advantage)
 
                 return_list.append(episode_returns)
 
-                # tracking
+                # Gradient tracking.
                 y_list = take_grad_consensus(y_list, pi)
                 next_y_list = []
                 for idx, agent in enumerate(agents):
                     y_new = update_y(y_list[idx], v_list[idx], prev_v_list[idx])
                     next_y_list.append(y_new)
 
+                # Generate preconditioner for NPG.
                 update_grad_list = []
                 for s_list, y, agent, transition_dict, advantage in zip(states_lists, next_y_list, agents, transition_dicts, advantage_list):
                     direction_grad = agent.compute_precondition_with_y(s_list, y, transition_dict, advantage)
                     update_grad_list.append(direction_grad)
 
+                # Take consensus for gradients and parameters.
                 consensus_grad_list = take_grad_consensus(update_grad_list, pi)
                 agents = take_param_consensus(agents, pi)
 
+                # Update parameters.
                 for agent, grad in zip(agents, consensus_grad_list):
-                    update_param(agent, grad, lr=1)  #lr=args.grad_lr
+                    update_param(agent, grad, lr=1)
 
                 prev_v_list = copy.deepcopy(v_list)
                 y_list = copy.deepcopy(next_y_list)
@@ -174,64 +175,30 @@ def run(args):
     return return_list, mv_return_list, agents, error_list
 
 
-
-
 if __name__ == '__main__':
     env_name = 'GridWorld'
-    topologies = ['ring']  # 'dense'
+    topologies = ['ring']  # 'dense', 'bipartite'
     num_agents = 5
     betas = [0.2]
     labels = ['beta=0.2']
-    return_lists = []
-    mv_return_lists = []
-    error_lists = []
 
     for beta, label, topology in zip(betas, labels, topologies):
         args = set_args(num_agents=num_agents, beta=beta, topology=topology)
-        fpath = os.path.join('mdnpg_results', env_name, str(num_agents) + 'D',
-                             'beta=' + str(beta) + '_' + topology)  # + '_' + timestr
+        fpath = os.path.join('mdnpg_results', env_name, str(num_agents) + '_agents',
+                             label + '_' + topology)
         if not os.path.isdir(fpath):
             os.makedirs(fpath)
         print(f"beta={beta}")
 
         return_list, mv_return_list, agents, error_list = run(args=args)
+
         np.save(os.path.join(fpath, 'return.npy'), return_list)
         np.save(os.path.join(fpath, 'avg_return.npy'), mv_return_list)
         np.save(os.path.join(fpath, 'error_list.npy'), error_list)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
-        error_lists.append(error_list)
 
+        # Save the trained models.
         for idx, agent in enumerate(agents):
             torch.save(agent, os.path.join(fpath, 'agent' + str(idx) + '.pth'))
 
 
-    plt.figure()
-    for return_list, label in zip(return_lists, labels):
-        plt.plot(return_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('{}-agent Momentum NPG on {}'.format(num_agents, env_name))
-    plt.savefig(os.path.join(fpath, 'return.jpg'))
-    plt.show()
 
-    plt.figure()
-    for return_list, label in zip(mv_return_lists, labels):
-        plt.plot(return_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('{}-agent Momentum NPG on {}'.format(num_agents, env_name))
-    plt.legend()
-    plt.savefig(os.path.join(fpath, 'avg_return.jpg'))
-    plt.show()
-
-    plt.figure()
-    for return_list, label in zip(error_lists, labels):
-        plt.plot(error_list, label=label)
-    plt.xlabel('Episodes')
-    plt.ylabel('Consensus error')
-    plt.legend()
-    plt.title('{}-agent Momentum NPG on {}'.format(num_agents, env_name))
-    plt.savefig(os.path.join(fpath, 'error.jpg'))
-    plt.show()

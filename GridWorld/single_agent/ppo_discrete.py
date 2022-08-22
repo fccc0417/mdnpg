@@ -1,18 +1,12 @@
+"""
+Reference: https://github.com/boyu-ai/Hands-on-RL
+"""
 import torch
 import torch.nn.functional as F
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 from tqdm import tqdm
 from GridWorld.envs.gridworld import GridWorldEnv
-# from envs.gridworld_4_test import GridWorldEnv
 from GridWorld.envs.init_agent_pos_4_single import *
-
-map_path_0 = "../envs/grid_maps/map_0.npy"
-map_path_1 = "../envs/grid_maps/map_1.npy"
-map_path_2 = "../envs/grid_maps/map_2.npy"
-map_path_3 = "../envs/grid_maps/map_3.npy"
-map_path_4 = "../envs/grid_maps/map_4.npy"
 
 
 def moving_average(a, window_size):
@@ -88,7 +82,7 @@ class ValueNet(torch.nn.Module):
 
 
 class PPO:
-    ''' PPO算法,采用截断方式 '''
+    """Clipped PPO"""
     def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
                  lmbda, epochs, eps, gamma, device):
         self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
@@ -99,8 +93,8 @@ class PPO:
                                                  lr=critic_lr)
         self.gamma = gamma
         self.lmbda = lmbda
-        self.epochs = epochs  # 一条序列的数据用来训练轮数
-        self.eps = eps  # PPO中截断范围的参数
+        self.epochs = epochs  # epochs for update
+        self.eps = eps  # clipped range
         self.device = device
 
     def take_action(self, state):
@@ -111,31 +105,22 @@ class PPO:
         return action.item()
 
     def update(self, transition_dict):
-        states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(
-            self.device)
-        rewards = torch.tensor(transition_dict['rewards'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
-        next_states = torch.tensor(transition_dict['next_states'],
-                                   dtype=torch.float).to(self.device)
-        dones = torch.tensor(transition_dict['dones'],
-                             dtype=torch.float).view(-1, 1).to(self.device)
-        td_target = rewards + self.gamma * self.critic(next_states) * (1 -
-                                                                       dones)
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
+        td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         td_delta = td_target - self.critic(states)
-        advantage = compute_advantage(self.gamma, self.lmbda,
-                                               td_delta.cpu()).to(self.device)
-        old_log_probs = torch.log(self.actor(states).gather(1,
-                                                            actions)).detach()
+        advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
+        old_log_probs = torch.log(self.actor(states).gather(1, actions)).detach()
 
         for _ in range(self.epochs):
             log_probs = torch.log(self.actor(states).gather(1, actions))
             ratio = torch.exp(log_probs - old_log_probs)
             surr1 = ratio * advantage
-            surr2 = torch.clamp(ratio, 1 - self.eps,
-                                1 + self.eps) * advantage  # 截断
-            actor_loss = torch.mean(-torch.min(surr1, surr2))  # PPO损失函数
+            surr2 = torch.clamp(ratio, 1 - self.eps, 1 + self.eps) * advantage  # clipped
+            actor_loss = torch.mean(-torch.min(surr1, surr2))  # PPO loss
             critic_loss = torch.mean(
                 F.mse_loss(self.critic(states), td_target.detach()))
             self.actor_optimizer.zero_grad()
@@ -158,12 +143,11 @@ def run(seed=0):
     epochs = 10
     eps = 0.2
     max_eps_len = 200
-    random_loc = True
+    random_loc = True  # whether each episode uses a random initial location for an agent
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     agent_pos = np.random.randint(0, 10, 2)
     env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
-    # env = GridWorldEnv(grid_map_path=map_path_4)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,
@@ -172,37 +156,12 @@ def run(seed=0):
     mv_return_list = moving_average(return_list, 9)
     return return_list, mv_return_list
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     env_name = 'GridWorld'
     seeds = [0]
-    return_lists = []
-    mv_return_lists = []
 
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(seed)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
-
-    plt.figure()
-    for return_list, seed in zip(return_lists, seeds):
-        plt.plot(return_list, label=str(seed))
-        # np.save(os.path.join('records/'+label+'_pg_return.npy'), return_list)
-    # episodes_list = list(range(len(return_list)))
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('PPO on {}'.format(env_name))
-    plt.show()
-
-    plt.figure()
-    for return_list, seed in zip(mv_return_lists, seeds):
-        plt.plot(return_list, label=str(seed))
-        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_ppo_avg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('PPO on {}'.format(env_name))
-    plt.savefig('records/'+env_name+'_'+str(seed)+'_ppo.jpg')
-    plt.show()
+        np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_ppo_avg_return.npy'), mv_return_list)

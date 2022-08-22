@@ -1,6 +1,7 @@
 """
 Reference: https://github.com/xylee95/MD-PGT
-"""""
+Paper: "MDPGT: Momentum-based Decentralized Policy Gradient Tracking"
+"""
 import argparse
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -162,18 +163,21 @@ def run(args, env_name):
                         single_traj_v = torch.stack(single_traj_v, dim=0)
                         minibatch_v.append(single_traj_v)
 
-                    # episode_returns += episode_return
                     minibatch_v = torch.stack(minibatch_v, dim=0)
                     v_list = torch.mean(minibatch_v, dim=0)
                     v_lists.append(v_list)
 
                 return_list.append(episode_returns / args.minibatch_size)
+
+                # Gradient tracking.
                 y_lists = take_grad_consensus(y_lists, pi)
                 next_y_lists = update_y_lists(y_lists, prev_v_lists, v_lists)
 
+                # Take consensus for gradients and parameters.
                 consensus_next_y_lists = take_grad_consensus(next_y_lists, pi)
                 agents = take_param_consensus(agents, pi)
 
+                # Update parameters.
                 for agent, grads in zip(agents, consensus_next_y_lists):
                     update_param(agent, grads, lr=args.grad_lr)
 
@@ -195,9 +199,6 @@ if __name__ == '__main__':
     betas = [0.2]
     labels = ['beta=0.2']
     num_agents = 5
-    return_lists = []
-    mv_return_lists = []
-    error_lists = []
 
     for beta, label, topology in zip(betas, labels, topologies):
         args = set_args(num_agents=num_agents, beta=beta, topology=topology)
@@ -212,8 +213,6 @@ if __name__ == '__main__':
         np.save(os.path.join(fpath, 'avg_return.npy'), mv_return_list)
         np.save(os.path.join(fpath, 'error.npy'), error_list)
 
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
-        error_lists.append(error_list)
+
 
 

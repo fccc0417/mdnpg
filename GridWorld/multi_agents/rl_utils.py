@@ -4,10 +4,8 @@ import json
 import numpy as np
 
 
-'''
-Load the connectivity weight matrix.
-'''
 def load_pi(num_agents, topology):
+    """Load the connectivity weight matrix."""
     wsize = num_agents
     if topology == 'dense':
         topo = 1
@@ -21,18 +19,13 @@ def load_pi(num_agents, topology):
     return cdict['pi']
 
 
-'''
-Take parameters consensus.
-'''
 def take_param_consensus(agents, pi):
+    """Take parameters consensus."""
     layer_1_w = []
     layer_1_b = []
 
     layer_2_w = []
     layer_2_b = []
-
-    # layer_3_w = []
-    # layer_3_b = []
 
     for agent in agents:
         layer_1_w.append(agent.actor.dense1.weight.data)
@@ -40,10 +33,6 @@ def take_param_consensus(agents, pi):
 
         layer_2_w.append(agent.actor.dense2.weight.data)
         layer_2_b.append(agent.actor.dense2.bias.data)
-
-        # layer_3_w.append(agent.actor.dense3.weight.data)
-        # layer_3_b.append(agent.actor.dense3.bias.data)
-
 
     for agent_idx, agent in enumerate(agents):
         agent.actor.dense1.weight.data = torch.sum(
@@ -56,16 +45,11 @@ def take_param_consensus(agents, pi):
         agent.actor.dense2.bias.data = torch.sum(torch.stack(tuple(layer_2_b)) * torch.tensor(pi[agent_idx]).unsqueeze(-1),
                                            0).clone()
 
-        # agent.actor.dense3.weight.data = torch.sum(
-        #     torch.stack(tuple(layer_3_w)) * torch.tensor(pi[agent_idx]).unsqueeze(-1).unsqueeze(-1), 0).clone()
-        # agent.actor.dense3.bias.data = torch.sum(torch.stack(tuple(layer_3_b)) * torch.tensor(pi[agent_idx]).unsqueeze(-1),
-        #                                    0).clone()
     return agents
 
-'''
-Take gradient consensus.
-'''
+
 def take_grad_consensus(grad_list_flat, pi):
+    """Take gradient consensus."""
     consensus_grads = []
     for j in range(len(grad_list_flat)):
         grad_cons = torch.sum(torch.stack(tuple(grad_list_flat)) * torch.tensor(pi[j]).unsqueeze(-1), 0).clone()
@@ -74,13 +58,14 @@ def take_grad_consensus(grad_list_flat, pi):
 
 
 def update_param(agent, obj_grad, lr=3e-4):
-    '''update parameters for an agent'''
+    """update parameters for an agent"""
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
     new_para = old_para + lr * obj_grad
     torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
 
 
 def moving_average(a, window_size):
+    """Move average for averaged returns."""
     cumulative_sum = np.cumsum(np.insert(a, 0, 0))
     middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
     r = np.arange(1, window_size - 1, 2)
@@ -90,6 +75,7 @@ def moving_average(a, window_size):
 
 
 def compute_advantage(gamma, lmbda, td_delta):
+    """Calculate advantage function using GAE."""
     td_delta = td_delta.detach().numpy()
     advantage_list = []
     advantage = 0.0
@@ -101,26 +87,13 @@ def compute_advantage(gamma, lmbda, td_delta):
 
 
 def update_y(y, v, prev_v):
+    """Update gradient estimator y^{t+1} using gradient tracking."""
     next_y = y + v - prev_v
     return next_y
 
 
-def get_flat_grad(y: torch.Tensor, model, **kwargs):
-    grads = torch.autograd.grad(y, model.parameters(), **kwargs)  # type: ignore
-    return torch.cat([grad.reshape(-1) for grad in grads])
-
-
-def set_from_flat_grads(model, flat_params):
-    prev_ind = 0
-    grads = []
-    for param in model.parameters():
-        flat_size = int(np.prod(list(param.size())))
-        grads.append(flat_params[prev_ind:prev_ind + flat_size]) #.view(param.size())
-        prev_ind += flat_size
-    return grads
-
-
 def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
+    """Initialization for traning agents."""
     prev_u_list = []
     v_k_list = []
 

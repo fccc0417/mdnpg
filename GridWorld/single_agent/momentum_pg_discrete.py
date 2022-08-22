@@ -1,20 +1,11 @@
 import argparse
 from tqdm import tqdm
 import torch
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import copy
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-# from envs.gridworld_4_test import GridWorldEnv
 from GridWorld.envs.init_agent_pos_4_single import *
-
-map_path_0 = "../envs/grid_maps/map_0.npy"
-map_path_1 = "../envs/grid_maps/map_1.npy"
-map_path_2 = "../envs/grid_maps/map_2.npy"
-map_path_3 = "../envs/grid_maps/map_3.npy"
-map_path_4 = "../envs/grid_maps/map_4.npy"
 
 
 def moving_average(a, window_size):
@@ -93,17 +84,16 @@ class ValueNet(torch.nn.Module):
 
 
 class Momentum_PG:
-    """ Momentum PG算法 """
+    """ Momentum-based PG """
     def __init__(self,  state_space, action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr):
         state_dim = state_space.shape[0]
         action_dim = action_space.n
-        # 策略网络参数不需要优化器更新
         self.actor = PolicyNet(state_dim, action_dim).to(device)
         self.critic = ValueNet(state_dim).to(device)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
                                                  lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
+        self.lmbda = lmbda
         self.device = device
         self.min_isw = min_isw
         self.beta = beta
@@ -116,7 +106,7 @@ class Momentum_PG:
         action = action_dist.sample()
         return action.item()
 
-    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  # 计算策略目标
+    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):
         log_probs = torch.log(actor(states).gather(1, actions))
         ratio = torch.exp(log_probs - old_log_probs)
         return torch.mean(ratio * advantage)
@@ -152,60 +142,50 @@ class Momentum_PG:
         grad_surrogate = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
         return grad_surrogate
 
-    def policy_learn(self, transition_dict, advantage, prev_v, phi, lr):  # 更新策略函数
+    def policy_learn(self, transition_dict, advantage, prev_v, phi, lr):
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
-        old_log_probs = torch.log(self.actor(states).gather(1, actions)).detach()
-        old_action_dists = torch.distributions.Categorical(self.actor(states).detach())
 
         isw = self.compute_IS_weight(actions, states, phi, self.min_isw)
         prev_g = self.compute_grad_traj_prev_weights(states, actions, phi, advantage)
         obj_grad = self.compute_grads(transition_dict, advantage)
         grad_v = self.compute_v(obj_grad, prev_v, isw, prev_g, self.beta)
 
-        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(
-            self.actor.parameters())
+        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(self.actor.parameters())
         new_para = old_para + lr * grad_v
 
-        torch.nn.utils.convert_parameters.vector_to_parameters(
-            new_para, self.actor.parameters())
+        torch.nn.utils.convert_parameters.vector_to_parameters(new_para, self.actor.parameters())
         return grad_v
 
     def update_value(self, transition_dict):
-        states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        rewards = torch.tensor(transition_dict['rewards'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
-        next_states = torch.tensor(transition_dict['next_states'],
-                                   dtype=torch.float).to(self.device)
-        dones = torch.tensor(transition_dict['dones'],
-                             dtype=torch.float).view(-1, 1).to(self.device)
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         td_delta = td_target - self.critic(states)
         critic_loss = torch.mean(F.mse_loss(self.critic(states), td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()  # 更新价值函数
+        self.critic_optimizer.step()
 
         advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
         return advantage
 
-######################################################################
-
 
 def set_args(beta=0.2, seed=0):
-    parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
-    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
-    parser.add_argument('--critic_lr', type=float, default=1e-2, help='critic_lr')
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--gamma', type=float, default=0.99, help='Single agent momentum PG')
+    parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
-    parser.add_argument('--actor_lr', type=float, default=5e-5, help='actor_lr') #1e-4
+    parser.add_argument('--actor_lr', type=float, default=5e-5, help='policy learning rate for initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=2000, help='Number training episodes')
-    parser.add_argument('--beta', type=float, default=beta, help='Beta term for surrogate gradient')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
-    parser.add_argument('--minibatch_size', type=int, default=32, help='Number of trajectory for warm startup')
-    parser.add_argument('--random_loc', type=bool, default=True, help='Each episode use random initial location')
+    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
+    parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value to set ISW')
+    parser.add_argument('--minibatch_size', type=int, default=32, help='number of trajectory for batch gradients in initialization')
+    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -224,7 +204,7 @@ def run(beta, seed):
     critic_lr = args.critic_lr
     actor_lr = args.actor_lr
     max_eps_len = args.max_eps_len
-    device = torch.device("cpu") #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     agent_pos = np.random.randint(0, 10, 2)
     env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
     # env = GridWorldEnv(grid_map_path=map_path_4)
@@ -272,38 +252,13 @@ def run(beta, seed):
 
 if __name__ == '__main__':
     env_name = 'GridWorld'
-    betas = [0.6, 0.6, 0.6, 0.6, 0.6]  # [0.2, 0.4, 0.6, 0.8, 1] [0.8, 0.8, 0.8]
-    labels = ['beta=0.6', 'beta=0.6', 'beta=0.6', 'beta=0.6', 'beta=0.6'] #['beta=0.2', 'beta=0.4', 'beta=0.6', 'beta=0.8', 'beta=1'] ['beta=0.8', 'beta=0.8', 'beta=0.8']
-    seeds = [0] #[0, 12, 2226]
-    return_lists = []
-    mv_return_lists = []
+    betas = [0.6]
+    labels = ['beta=0.6']
+    seeds = [0]
 
-    for beta, seed in zip(betas, seeds):
+    for beta, seed, label in zip(betas, seeds, labels):
         print(f"beta={beta}, seed={seed}")
         return_list, mv_return_list, agent = run(beta, seed)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
+        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_'+'_'+label+'_pg_avg_return.npy'), mv_return_list)
         torch.save(agent, os.path.join('agents/'+'pg_agent_'+str(seed)+'.pth'))
-
-    plt.figure()
-    for return_list, label, seed in zip(return_lists, labels, seeds):
-        plt.plot(return_list, label=label)
-        # np.save(os.path.join('records/'+label+'_pg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.legend()
-    plt.title('PG on {}'.format(env_name))
-    # plt.savefig('records/pg_discrete_1.jpg')
-    plt.show()
-
-    plt.figure()
-    for return_list, label, seed in zip(mv_return_lists, labels, seeds):
-        plt.plot(return_list, label=label)
-        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_'+'_'+label+'_pg_avg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('PG on {}'.format(env_name))
-    plt.legend()
-    plt.savefig(os.path.join('records/'+env_name+'_'+label+'_pg.jpg'))
-    plt.show()
 

@@ -2,6 +2,7 @@ import numpy as np
 
 
 def agent_pos_reset_4_envs(envs):
+    """Randomly initialize a common initial position for all agents."""
     goal_pos_list = []
     obs_pos_list = []
     for env in envs:

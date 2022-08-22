@@ -1,9 +1,11 @@
+"""
+Paper: "An Improved Analysis of (Variance-Reduced) Policy Gradient and Natural Policy Gradient Methods"
+"""
 import argparse
 from tqdm import tqdm
 import torch
 import numpy as np
 import gym
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import copy
 import os
@@ -52,17 +54,10 @@ def initialization(sample_env, agent, lr=1e-4, minibatch=10):
         single_traj_grads = agent.compute_grads(transition_dict, advantage)
         minibatch_grads.append(single_traj_grads)
 
-    # update policy network
-    # need grads to be shape num_agent x list of grads of every layer
-    # minibatch_grads = np.asarray(minibatch_grads, dtype=object)
-    prev_u = torch.mean(torch.stack(minibatch_grads, dim=1),
-                        dim=1)  # np.mean(minibatch_grads) or x.mean() # average across batch
-    # prev_u = minibatch_grads.tolist()
-
+    prev_u = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
     new_para = old_para + lr * prev_u
     torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
-    # return prev_u
 
 
 class PolicyNetContinuous(torch.nn.Module):
@@ -91,20 +86,18 @@ class ValueNet(torch.nn.Module):
 
 
 class SRVR_NPG_Continuous:
-    """ TRPO算法 """
+    """SRVR-NPG algorithm."""
 
     def __init__(self, state_space, action_space, lmbda,
                  kl_constraint, critic_lr, gamma, device, min_isw):
         state_dim = state_space.shape[0]
         action_dim = action_space.shape[0]
-        # 策略网络参数不需要优化器更新
         self.actor = PolicyNetContinuous(state_dim, action_dim).to(device)
         self.critic = ValueNet(state_dim).to(device)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
-                                                 lr=critic_lr)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
-        self.kl_constraint = kl_constraint  # KL距离最大限制
+        self.lmbda = lmbda
+        self.kl_constraint = kl_constraint
         self.device = device
         self.min_isw = min_isw
 
@@ -116,30 +109,23 @@ class SRVR_NPG_Continuous:
         return [action.item()]
 
     def hessian_matrix_vector_product(self, states, old_action_dists, vector):
-        # 计算黑塞矩阵和一个向量的乘积
         mu, std = self.actor(states)
         new_action_dists = torch.distributions.Normal(mu, std)
 
-        kl = torch.mean(
-            torch.distributions.kl.kl_divergence(old_action_dists,
-                                                 new_action_dists))  # 计算平均KL距离
-        kl_grad = torch.autograd.grad(kl,
-                                      self.actor.parameters(),
-                                      create_graph=True)
+        kl = torch.mean(torch.distributions.kl.kl_divergence(old_action_dists, new_action_dists))
+        kl_grad = torch.autograd.grad(kl, self.actor.parameters(), create_graph=True)
         kl_grad_vector = torch.cat([grad.view(-1) for grad in kl_grad])
-        # KL距离的梯度先和向量进行点积运算
         kl_grad_vector_product = torch.dot(kl_grad_vector, vector)
-        grad2 = torch.autograd.grad(kl_grad_vector_product,
-                                    self.actor.parameters())
+        grad2 = torch.autograd.grad(kl_grad_vector_product, self.actor.parameters())
         grad2_vector = torch.cat([grad.view(-1) for grad in grad2])
         return grad2_vector
 
-    def conjugate_gradient(self, grad, states, old_action_dists):  # 共轭梯度法求解方程
+    def conjugate_gradient(self, grad, states, old_action_dists):
         x = torch.zeros_like(grad)
         r = grad.clone()
         p = grad.clone()
         rdotr = torch.dot(r, r)
-        for i in range(10):  # 共轭梯度主循环
+        for i in range(10):
             Hp = self.hessian_matrix_vector_product(states, old_action_dists, p)
             alpha = rdotr / torch.dot(p, Hp)
             x += alpha * p
@@ -152,7 +138,7 @@ class SRVR_NPG_Continuous:
             rdotr = new_rdotr
         return x
 
-    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  # 计算策略目标
+    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):
         mu, std = actor(states)
         action_dists = torch.distributions.Normal(mu, std)
         log_probs = action_dists.log_prob(actions)
@@ -201,18 +187,16 @@ class SRVR_NPG_Continuous:
         new_para = old_para + lr * update_grad
         torch.nn.utils.convert_parameters.vector_to_parameters(new_para, self.actor.parameters())
 
-    def policy_learn(self, states_list, grad_u):  # 更新策略函数
+    def policy_learn(self, states_list, grad_u):
         states = torch.tensor(states_list, dtype=torch.float).to(self.device)
 
         mu, std = self.actor(states)
         old_action_dists = torch.distributions.Normal(mu.detach(), std.detach())
 
-        # 用共轭梯度法计算x = H^(-1)g
         descent_direction = self.conjugate_gradient(grad_u, states, old_action_dists)
 
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
-        max_coef = torch.sqrt(2 * self.kl_constraint /
-                              (torch.dot(descent_direction, Hd) + 1e-8))
+        max_coef = torch.sqrt(2 * self.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
         update_grad = descent_direction * max_coef
         return update_grad
 
@@ -224,40 +208,32 @@ class SRVR_NPG_Continuous:
         return isw * prev_g
 
     def update_value(self, transition_dict):
-        states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        rewards = torch.tensor(transition_dict['rewards'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
-        next_states = torch.tensor(transition_dict['next_states'],
-                                   dtype=torch.float).to(self.device)
-        dones = torch.tensor(transition_dict['dones'],
-                             dtype=torch.float).view(-1, 1).to(self.device)
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         td_delta = td_target - self.critic(states)
         critic_loss = torch.mean(F.mse_loss(self.critic(states), td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()  # 更新价值函数
+        self.critic_optimizer.step()
         advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
         return advantage
 
 
-######################################################################
-
 def set_args(seed=0):
     parser = argparse.ArgumentParser(description='SRVR-NPG')
-    parser.add_argument('--gamma', type=float, default=0.999, help='discount factor (default: 0.99)')
+    parser.add_argument('--gamma', type=float, default=0.999, help='discount factor')
     parser.add_argument('--lmbda', type=float, default=1, help='lambda')
-    parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='critic_lr')
-    parser.add_argument('--kl_constraint', type=float, default=0.05, help='kl_constraint')  # 0.0005
-    # parser.add_argument('--alpha', type=float, default=0.5, help='alpha')
-    parser.add_argument('--actor_lr', type=float, default=2.5e-3, help='actor_lr')  # 5e-3
+    parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='value learning rate')
+    parser.add_argument('--kl_constraint', type=float, default=0.05, help='kl_constraint')
+    parser.add_argument('--actor_lr', type=float, default=2.5e-3, help='policy learning rate')
     parser.add_argument('--init_lr', type=float, default=0, help='actor_lr')
-    parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
+    parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_agents', type=int, default=1, help='Number of agents')
-    # parser.add_argument('--max_eps_len', type=int, default=20, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=5000, help='Number training episodes')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
+    parser.add_argument('--num_episodes', type=int, default=5000, help='number training episodes')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum importance weight')
     parser.add_argument('--batch_size', type=int, default=10, help='N')
     parser.add_argument('--epoch_size', type=int, default=2, help='m')
     parser.add_argument('--minibatch_size', type=int, default=3, help='B')
@@ -279,14 +255,12 @@ def run(env_name, seed=0):
     batch_size = args.batch_size
     critic_lr = args.critic_lr
     kl_constraint = args.kl_constraint
-    # alpha = args.alpha
-    device = torch.device("cpu")  # torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     sample_env = gym.make(env_name)
     agent = SRVR_NPG_Continuous(sample_env.observation_space, sample_env.action_space, lmbda, kl_constraint, critic_lr,
                                 gamma, device, min_isw)
 
     initialization(sample_env, agent, lr=init_lr, minibatch=minibatch_size)
-    # old_policy = copy.deepcopy(agent.actor)
     env = gym.make(env_name)
     env.seed(args.seed)
     return_list = []
@@ -295,7 +269,6 @@ def run(env_name, seed=0):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
                 old_policy = copy.deepcopy(agent.actor)
-                episode_return = 0
                 states_list = []
                 minibatch_grads = []
                 for n in range(batch_size):
@@ -312,7 +285,6 @@ def run(env_name, seed=0):
                         transition_dict['rewards'].append(reward)
                         transition_dict['dones'].append(done)
                         state = next_state
-                        # episode_return += reward
 
                     advantage = agent.update_value(transition_dict)
                     single_traj_grad = agent.compute_grads(transition_dict, advantage)
@@ -320,7 +292,6 @@ def run(env_name, seed=0):
 
                 avg_grad = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
                 prev_u = copy.deepcopy(avg_grad)
-                # return_list.append(episode_return/batch_size)
                 avg_update_grad = agent.policy_learn(states_list, avg_grad)
                 agent.update_para(update_grad=avg_update_grad, lr=actor_lr)
 
@@ -373,37 +344,16 @@ def run(env_name, seed=0):
 
 
 if __name__ == '__main__':
-    env_name = 'MountainCarContinuous-v0'  # 'MountainCarContinuous-v0'
-    seeds = [12]  # 2
+    env_name = 'MountainCarContinuous-v0'
+    seeds = [0]
     return_lists = []
     mv_return_lists = []
 
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(env_name, seed)
-        np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_srvrnpg_return.npy'), return_list)
+        # np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_srvrnpg_return.npy'), return_list)
         np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_srvrnpg_avg_return.npy'), mv_return_list)
         return_lists.append(return_list)
         mv_return_lists.append(mv_return_list)
 
-    plt.figure()
-    for return_list, seed in zip(return_lists, seeds):
-        plt.plot(return_list)
-
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    # plt.legend()
-    plt.title('SRVR_NPG on {} (discrete)'.format(env_name))
-    plt.savefig(os.path.join('records/' + env_name + '_srvrnpg0.jpg'))
-    plt.show()
-
-    plt.figure()
-    for return_list, seed in zip(mv_return_lists, seeds):
-        plt.plot(return_list)
-
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('SRVR_NPG on {} (discrete)'.format(env_name))
-    # plt.legend()
-    plt.savefig(os.path.join('records/' + env_name + '_srvrnpg.jpg'))
-    plt.show()

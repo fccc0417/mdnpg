@@ -2,6 +2,7 @@ import numpy as np
 
 
 def agent_pos_reset(env):
+    """Randomly initialize an initial position of a single agent."""
     while True:
         agent_pos = np.random.randint(0, 10, 2)
         flag = False

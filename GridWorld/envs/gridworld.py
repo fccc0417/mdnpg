@@ -5,6 +5,9 @@ path = '../envs/grid_maps/map_init.npy'
 
 
 class GridWorldEnv(gym.Env):
+    """Class of GridWorld.
+    Randomly generate the positions of goal and of obstacles.
+    """
     def __init__(self, grid_map_path=path, agent_pos=np.array([0, 0]), seed=0):
         self.seed = seed
         np.random.seed(self.seed)
@@ -55,11 +58,15 @@ class GridWorldEnv(gym.Env):
         print(self.grid_map)
 
     def reset(self):
+        """Reset the GridWorld."""
         self.agent_pos = self.init_pos
         obs = self.get_observation()
         return obs
 
     def step(self, action):
+        """Take an action.
+        Return: observation (state), reward, done (whether termination), info (other information)
+        """
         pos = self.agent_pos + self.action_dict[action]
         if 0 <= pos[0] < self.grid_shape[0] and 0 <= pos[1] < self.grid_shape[1]:
             self.agent_pos = pos
@@ -71,10 +78,12 @@ class GridWorldEnv(gym.Env):
         return obs, reward, done, info
 
     def get_observation(self):
+        """Obtain the observation of the GridWorld."""
         obs = self.agent_pos
         return obs
 
     def get_reward(self):
+        """Obtain the reward from the GridWorld."""
         reward = -0.1 * np.sqrt((self.agent_pos[0] - self.goal_pos[0]) ** 2 + (self.agent_pos[1] - self.goal_pos[1]) ** 2)
         pos = tuple(self.agent_pos)
         if self.grid_map[pos] == 'O':
@@ -84,6 +93,7 @@ class GridWorldEnv(gym.Env):
         return reward
 
     def get_done(self):
+        """Determine whether the trajectory is terminated."""
         done = False
         pos = tuple(self.agent_pos)
         if self.grid_map[pos] == 'G' or self.grid_map[pos] == 'O':

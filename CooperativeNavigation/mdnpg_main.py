@@ -197,7 +197,7 @@ def run(args, env_name):
 
                 pbar.update(1)
     mv_return_list = moving_average(return_list, 9)
-    return return_list, mv_return_list, error_list, agents
+    return return_list, mv_return_list, error_list
 
 
 if __name__ == '__main__':
@@ -206,9 +206,6 @@ if __name__ == '__main__':
     topologies = ['ring']  # ['dense', bipartite, ring]
     betas = [0.2]
     labels = ['beta=0.2']
-    return_lists = []
-    mv_return_lists = []
-    error_lists = []
 
     for beta, label, topology in zip(betas, labels, topologies):
         args = set_args(num_agents=num_agents, beta=beta, topology=topology)
@@ -218,15 +215,11 @@ if __name__ == '__main__':
             os.makedirs(fpath)
         print(f"beta={beta}")
 
-        return_list, mv_return_list, error_list, agents = run(args=args, env_name=env_name)
+        return_list, mv_return_list, error_list = run(args=args, env_name=env_name)
+
         np.save(os.path.join(fpath, 'return.npy'), return_list)
         np.save(os.path.join(fpath, 'avg_return.npy'), mv_return_list)
         np.save(os.path.join(fpath, 'error_list.npy'), error_list)
-        return_lists.append(return_list)
-        error_lists.append(error_list)
-        mv_return_lists.append(mv_return_list)
 
-        # Save the trained models.
-        for idx, agent in enumerate(agents):
-            torch.save(agent, os.path.join(fpath, 'agent' + str(idx) + '.pth'))
+
             

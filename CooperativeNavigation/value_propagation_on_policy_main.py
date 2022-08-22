@@ -1,3 +1,6 @@
+"""
+Paper: "Value Propagation for Decentralized Networked Deep Multi-agent Reinforcement Learning"
+"""
 import argparse
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -22,11 +25,11 @@ def set_args(num_agents=1, topology='dense'):
     parser.add_argument('--value_lr', type=float, default=3e-4, help='value learning rate')
     parser.add_argument('--policy_lr', type=float, default=3e-4, help='policy learning rate')
     parser.add_argument('--dual_lr', type=float, default=3e-4, help='dual learning rate')
-    parser.add_argument('--lmbda', type=float, default=0.01, help='lambda')
-    parser.add_argument('--T_dual', type=float, default=4, help='T_dual')
+    parser.add_argument('--lmbda', type=float, default=0.01, help='lambda, used for regularization')
+    parser.add_argument('--T_dual', type=float, default=4, help='T_dual for dual update')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
     parser.add_argument('--max_eps_len', type=int, default=20+20, help='number of steps per episode')
-    parser.add_argument('--n_steps', type=int, default=20, help='step of multi-step TD')
+    parser.add_argument('--n_steps', type=int, default=20, help='steps for multi-step TD')
     parser.add_argument('--num_episodes', type=int, default=20000, help='number training episodes')
     args = parser.parse_args()
     return args
@@ -155,17 +158,14 @@ def run(args, env_name):
 
                 pbar.update(1)
     mv_return_list = moving_average(return_list, 9)
-    return return_list, mv_return_list, agents
+    return return_list, mv_return_list
 
 
 if __name__ == '__main__':
     env_name = 'simple_spread'
     num_agents = 5
     topologies = ['ring']  #'bipartite', 'ring'
-    labels = ['ring'] 
-    return_lists = []
-    mv_return_lists = []
-
+    labels = ['ring']
 
     for label, topology in zip(labels, topologies):
         args = set_args(num_agents=num_agents, topology=topology)
@@ -175,12 +175,9 @@ if __name__ == '__main__':
             os.makedirs(fpath)
         print(f"topology={topology}")
 
-        return_list, mv_return_list, agents = run(args=args, env_name=env_name)
+        return_list, mv_return_list = run(args=args, env_name=env_name)
+
         np.save(os.path.join(fpath, 'return.npy'), return_list)
         np.save(os.path.join(fpath, 'avg_return.npy'), mv_return_list)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
 
-        for idx, agent in enumerate(agents):
-            torch.save(agent, os.path.join(fpath, 'agent' + str(idx) + '.pth'))
 

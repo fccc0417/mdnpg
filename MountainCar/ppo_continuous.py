@@ -1,10 +1,14 @@
+"""
+Reference: https://github.com/boyu-ai/Hands-on-RL
+"""
 import gym
 import torch
 import torch.nn.functional as F
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 from tqdm import tqdm
+
+
 def moving_average(a, window_size):
     cumulative_sum = np.cumsum(np.insert(a, 0, 0))
     middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
@@ -12,6 +16,7 @@ def moving_average(a, window_size):
     begin = np.cumsum(a[:window_size-1])[::2] / r
     end = (np.cumsum(a[:-window_size:-1])[::2] / r)[::-1]
     return np.concatenate((begin, middle, end))
+
 
 def train_on_policy_agent(env, agent, num_episodes):
     return_list = []
@@ -62,8 +67,7 @@ class PolicyNetContinuous(torch.nn.Module):
         x = F.relu(self.fc1(x))
         mu = 2.0 * torch.tanh(self.fc_mu(x))
         std = F.softplus(self.fc_std(x))
-        return mu, std  # 高斯分布的均值和标准差
-
+        return mu, std
 
 
 class ValueNet(torch.nn.Module):
@@ -89,8 +93,8 @@ class PPO_Continuous:
                                                  lr=critic_lr)
         self.gamma = gamma
         self.lmbda = lmbda
-        self.epochs = epochs  # 一条序列的数据用来训练轮数
-        self.eps = eps  # PPO中截断范围的参数
+        self.epochs = epochs  # epochs for update
+        self.eps = eps  # PPO clipped range
         self.device = device
 
     def take_action(self, state):
@@ -102,25 +106,17 @@ class PPO_Continuous:
 
 
     def update(self, transition_dict):
-        states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(
-            self.device)
-        rewards = torch.tensor(transition_dict['rewards'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
-        next_states = torch.tensor(transition_dict['next_states'],
-                                   dtype=torch.float).to(self.device)
-        dones = torch.tensor(transition_dict['dones'],
-                             dtype=torch.float).view(-1, 1).to(self.device)
-        td_target = rewards + self.gamma * self.critic(next_states) * (1 -
-                                                                       dones)
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
+        td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         td_delta = td_target - self.critic(states)
-        advantage = compute_advantage(self.gamma, self.lmbda,
-                                               td_delta.cpu()).to(self.device)
+        advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
 
         mu, std = self.actor(states)
         action_dists = torch.distributions.Normal(mu.detach(), std.detach())
-        # 动作是正态分布
         old_log_probs = action_dists.log_prob(actions)
 
 
@@ -131,9 +127,8 @@ class PPO_Continuous:
 
             ratio = torch.exp(log_probs - old_log_probs)
             surr1 = ratio * advantage
-            surr2 = torch.clamp(ratio, 1 - self.eps,
-                                1 + self.eps) * advantage  # 截断
-            actor_loss = torch.mean(-torch.min(surr1, surr2))  # PPO损失函数
+            surr2 = torch.clamp(ratio, 1 - self.eps, 1 + self.eps) * advantage  # clip
+            actor_loss = torch.mean(-torch.min(surr1, surr2))  # loss
             critic_loss = torch.mean(
                 F.mse_loss(self.critic(states), td_target.detach()))
             self.actor_optimizer.zero_grad()
@@ -147,14 +142,13 @@ class PPO_Continuous:
 def run(seed, env_name):
     actor_lr = 5e-5
     critic_lr = 2.5e-3
-    num_episodes = 5000 #500
+    num_episodes = 5000
     hidden_dim = 128
     gamma = 0.999
     lmbda = 1
     epochs = 10
     eps = 0.2
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
-        "cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     env = gym.make(env_name)
     env.seed(seed)
@@ -168,34 +162,14 @@ def run(seed, env_name):
     mv_return_list = moving_average(return_list, 9)
     return return_list, mv_return_list
 
+
 if __name__ == '__main__':
-    env_name = 'MountainCarContinuous-v0'  #'Pendulum-v0'
-    seeds = [6,7] #[0, 1, 2]
-    return_lists = []
-    mv_return_lists = []
+    env_name = 'MountainCarContinuous-v0'
+    seeds = [0]
 
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(seed, env_name)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
+        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_ppo_avg_return.npy'), mv_return_list)
 
-    plt.figure()
-    for return_list, seed in zip(return_lists, seeds):
-        plt.plot(return_list, label=str(seed))
-        # np.save(os.path.join('records/'+label+'_pg_return.npy'), return_list)
-    # episodes_list = list(range(len(return_list)))
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('PPO on {}'.format(env_name))
-    plt.show()
 
-    plt.figure()
-    for return_list, seed in zip(mv_return_lists, seeds):
-        plt.plot(return_list, label=seed)
-        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_ppo_avg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('PPO on {}'.format(env_name))
-    plt.savefig('records/'+env_name+'_ppo.jpg')
-    plt.show()

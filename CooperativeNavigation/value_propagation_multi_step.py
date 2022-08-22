@@ -189,7 +189,13 @@ class ValuePropagation:
             return primal_obj
 
     def calc_delta_add_penalty(self, idx, transition_dict):
-        """Calculate TD delta (multi-step version) with penalty."""
+        """Calculate multi-step-version TD delta (TD error) with penalty.
+        The actual episode length we need is self.max_eps_len-self.n_steps, the extra length of self.n_steps
+        is used to multi-step TD estimation. We consider 3 cases: 1) the sampled length is exactly self.max_eps_len;
+        2) the sampled lenagth  >= self.max_eps_len-self.n_steps;
+        3) the sampled lenagth < self.max_eps_len-self.n_steps.
+
+        """
         nsteps = self.n_steps
         if len(transition_dict['rewards']) == self.max_eps_len:
             states2 = torch.tensor(transition_dict['states'][:-self.n_steps], dtype=torch.float)

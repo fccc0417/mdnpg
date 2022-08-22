@@ -1,21 +1,14 @@
+"""
+Paper: "An Improved Analysis of (Variance-Reduced) Policy Gradient and Natural Policy Gradient Methods"
+"""
 import argparse
 from tqdm import tqdm
 import torch
-import numpy as np
-import gym
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import copy
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-# from envs.gridworld_4_test import GridWorldEnv
 from GridWorld.envs.init_agent_pos_4_single import *
-
-map_path_0 = "../envs/grid_maps/map_0.npy"
-map_path_1 = "../envs/grid_maps/map_1.npy"
-map_path_2 = "../envs/grid_maps/map_2.npy"
-map_path_3 = "../envs/grid_maps/map_3.npy"
-map_path_4 = "../envs/grid_maps/map_4.npy"
 
 
 def moving_average(a, window_size):
@@ -93,19 +86,18 @@ class ValueNet(torch.nn.Module):
 
 
 class SRVR_NPG:
-    """ TRPO算法 """
+    """ SRVR-NPG algorithm."""
     def __init__(self,  state_space, action_space, lmbda,
                  kl_constraint, critic_lr, gamma, device, min_isw):
         self.state_dim = state_space.shape[0]
         self.action_dim = action_space.n
-        # 策略网络参数不需要优化器更新
         self.actor = PolicyNet(self.state_dim, self.action_dim).to(device)
         self.critic = ValueNet(self.state_dim).to(device)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
                                                  lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
-        self.kl_constraint = kl_constraint  # KL距离最大限制
+        self.lmbda = lmbda
+        self.kl_constraint = kl_constraint
         self.device = device
         self.min_isw = min_isw
 
@@ -117,28 +109,21 @@ class SRVR_NPG:
         return action.item()
 
     def hessian_matrix_vector_product(self, states, old_action_dists, vector):
-        # 计算黑塞矩阵和一个向量的乘积
         new_action_dists = torch.distributions.Categorical(self.actor(states))
-        kl = torch.mean(
-            torch.distributions.kl.kl_divergence(old_action_dists,
-                                                 new_action_dists))  # 计算平均KL距离
-        kl_grad = torch.autograd.grad(kl,
-                                      self.actor.parameters(),
-                                      create_graph=True)
+        kl = torch.mean(torch.distributions.kl.kl_divergence(old_action_dists, new_action_dists))
+        kl_grad = torch.autograd.grad(kl, self.actor.parameters(), create_graph=True)
         kl_grad_vector = torch.cat([grad.view(-1) for grad in kl_grad])
-        # KL距离的梯度先和向量进行点积运算
         kl_grad_vector_product = torch.dot(kl_grad_vector, vector)
-        grad2 = torch.autograd.grad(kl_grad_vector_product,
-                                    self.actor.parameters())
+        grad2 = torch.autograd.grad(kl_grad_vector_product, self.actor.parameters())
         grad2_vector = torch.cat([grad.view(-1) for grad in grad2])
         return grad2_vector + 0.1*vector
 
-    def conjugate_gradient(self, grad, states, old_action_dists):  # 共轭梯度法求解方程
+    def conjugate_gradient(self, grad, states, old_action_dists):
         x = torch.zeros_like(grad)
         r = grad.clone()
         p = grad.clone()
         rdotr = torch.dot(r, r)
-        for i in range(10):  # 共轭梯度主循环
+        for i in range(10):
             Hp = self.hessian_matrix_vector_product(states, old_action_dists, p)
             alpha = rdotr / torch.dot(p, Hp)
             x += alpha * p
@@ -151,7 +136,7 @@ class SRVR_NPG:
             rdotr = new_rdotr
         return x
 
-    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  # 计算策略目标
+    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):
         log_probs = torch.log(actor(states).gather(1, actions))
         ratio = torch.exp(log_probs - old_log_probs)
         return torch.mean(ratio * advantage)
@@ -187,16 +172,14 @@ class SRVR_NPG:
         new_para = old_para + lr * update_grad
         torch.nn.utils.convert_parameters.vector_to_parameters(new_para, self.actor.parameters())
 
-    def policy_learn(self, states_list, grad_u):  # 更新策略函数
+    def policy_learn(self, states_list, grad_u):
         states = torch.tensor(states_list, dtype=torch.float).to(self.device)
         old_action_dists = torch.distributions.Categorical(self.actor(states).detach())
 
-        # 用共轭梯度法计算x = H^(-1)g
         descent_direction = self.conjugate_gradient(grad_u, states, old_action_dists)
 
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
-        max_coef = torch.sqrt(2 * self.kl_constraint /
-                              (torch.dot(descent_direction, Hd) + 1e-8))
+        max_coef = torch.sqrt(2 * self.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
         update_grad = descent_direction * max_coef
         return update_grad
 
@@ -208,42 +191,37 @@ class SRVR_NPG:
         return isw*prev_g
 
     def update_value(self, transition_dict):
-        states = torch.tensor(transition_dict['states'],
-                              dtype=torch.float).to(self.device)
-        rewards = torch.tensor(transition_dict['rewards'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
-        next_states = torch.tensor(transition_dict['next_states'],
-                                   dtype=torch.float).to(self.device)
-        dones = torch.tensor(transition_dict['dones'],
-                             dtype=torch.float).view(-1, 1).to(self.device)
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         td_delta = td_target - self.critic(states)
         critic_loss = torch.mean(F.mse_loss(self.critic(states), td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()  # 更新价值函数
+        self.critic_optimizer.step()
         advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
         return advantage
 
-######################################################################
 
 def set_args(seed=0):
-    parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
-    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor (default: 0.99)')
+    parser = argparse.ArgumentParser(description='SRVR-NPG')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='critic_lr')
     parser.add_argument('--kl_constraint', type=float, default=0.05, help='kl_constraint')
-    parser.add_argument('--actor_lr', type=float, default=3e-3, help='actor_lr') #1e-4
-    parser.add_argument('--init_lr', type=float, default=0, help='actor_lr')  #1e-4
+    parser.add_argument('--actor_lr', type=float, default=3e-3, help='actor_lr')
+    parser.add_argument('--init_lr', type=float, default=0, help='actor_lr in initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
-    parser.add_argument('--num_agents', type=int, default=1, help='Number of agents')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='Number of steps per episode')
-    parser.add_argument('--num_episodes', type=int, default=2000, help='Number training episodes')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='Minimum value to set ISW')
+    parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
+    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
     parser.add_argument('--batch_size', type=int, default=10, help='N')
     parser.add_argument('--epoch_size', type=int, default=2, help='m')
     parser.add_argument('--minibatch_size', type=int, default=3, help='B')
-    parser.add_argument('--random_loc', type=bool, default=True, help='Each episode use random initial location')
+    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -265,7 +243,6 @@ def run(seed=0):
     device = torch.device("cpu")
     agent_pos = np.random.randint(0, 10, 2)
     env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
-    # env = GridWorldEnv(grid_map_path=map_path_4)
     agent = SRVR_NPG(env.observation_space, env.action_space, lmbda, kl_constraint,  critic_lr, gamma, device, min_isw)
 
     initialization(env, agent, max_eps_len=max_eps_len, lr=init_lr, minibatch=1)
@@ -284,7 +261,6 @@ def run(seed=0):
                         agent_pos = agent_pos_reset(env)
                     state = env.reset()
                     done = False
-                    # while not done:
                     for t in range(max_eps_len):
                         action = agent.take_action(state)
                         states_list.append(state)
@@ -297,7 +273,6 @@ def run(seed=0):
                         state = next_state
                         if done:
                             break
-                        # episode_return += reward
 
                     advantage = agent.update_value(transition_dict)
                     single_traj_grad = agent.compute_grads(transition_dict, advantage)
@@ -305,7 +280,6 @@ def run(seed=0):
 
                 avg_grad = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
                 prev_u = copy.deepcopy(avg_grad)
-                # return_list.append(episode_return/batch_size)
                 avg_update_grad = agent.policy_learn(states_list, avg_grad)
                 agent.update_para(update_grad=avg_update_grad, lr=actor_lr)
 
@@ -323,7 +297,6 @@ def run(seed=0):
                             agent_pos = agent_pos_reset(env)
                         state = env.reset()
                         done = False
-                        # while not done:
                         for t in range(max_eps_len):
                             action = agent.take_action(state)
                             states_list.append(state)
@@ -364,34 +337,10 @@ def run(seed=0):
 
 if __name__ == '__main__':
     env_name ='GridWorld'
-    seeds = [11, 13]
-    return_lists = []
-    mv_return_lists = []
+    seeds = [0]
 
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(seed)
-        return_lists.append(return_list)
-        mv_return_lists.append(mv_return_list)
+        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_srvrnpg_avg_return.npy'), mv_return_list)
 
-    plt.figure()
-    for return_list, seed in zip(return_lists, seeds):
-        plt.plot(return_list)
-        # np.save(os.path.join('records/'+'srvrnpg_return.npy'), return_list)
-
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    # plt.legend()
-    plt.title('SRVR_NPG on'.format(env_name))
-    # plt.savefig('records/srvrnpg_1.jpg')
-    plt.show()
-
-    plt.figure()
-    for return_list, seed in zip(mv_return_lists,seeds):
-        plt.plot(return_list)
-        np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_srvrnpg_avg_return.npy'), return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Moving_average Returns')
-    plt.title('SRVR_NPG on {}'.format(env_name))
-    plt.savefig(os.path.join('records/'+env_name+'_srvrnpg.jpg'))
-    plt.show()

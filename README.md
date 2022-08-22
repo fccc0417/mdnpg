@@ -54,22 +54,19 @@ Code for paper "....."
 │　　│　　├─ momentum_pg.py　# Class of MDPGT method [[REF](https://github.com/xylee95/MD-PGT)].    
 │　　│　　├─ mdpgt_main.py　# Main file of MDPGT method [[REF](https://github.com/xylee95/MD-PGT)].    
 │　　│　　├─ pg_entropy.py　# Class of PG with entropy method.    
-│　　│　　├─ pg_entropy_main.py　# Main file of PG with entropy method.   
-│　　│　　└─ model_load.py  
-│　　├─ single_agent　# Multi-agent GridWorld.  
-│　　│　　├─ model_load.py  
+│　　│　　└─ pg_entropy_main.py　# Main file of PG with entropy method.
+│　　├─ single_agent　# Multi-agent GridWorld.
 │　　│　　├─ momentum_npg_discrete.py　# Momentum-based NPG.  
 │　　│　　├─ momentum_pg_discrete.py　# Momentum-based PG.  
 │　　│　　├─ pg_entropy_discrete.py　# PG with entropy.  
-│　　│　　├─ ppo_discrete.py　#  PPO.  
+│　　│　　├─ ppo_discrete.py　#  PPO [[REF](https://github.com/boyu-ai/Hands-on-RL)].  
 │　　│　　└─ svrnpg_discrete.py　# SRVR-NPG.  
 │　　└─ tools  
 │　　 　　└─ tool.py  
 ├─ MountainCar　# Experiments on MountainCarContinuous.    
 │　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
 │　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
-│　　├─ ppo_continuous.py　# PPO.  
-│　　├─ rl_utils.py  
+│　　├─ ppo_continuous.py　# PPO [[REF](https://github.com/boyu-ai/Hands-on-RL)].
 │　　└─ svrnpg_continuous.py　# SRVR-NPG.  
 └─ README.md
 
