@@ -1,5 +1,5 @@
-from multiagent.environment import MultiAgentEnv
-import multiagent.scenarios as scenarios
+from CooperativeNavigation.multiagent.environment import MultiAgentEnv
+import CooperativeNavigation.multiagent.scenarios as scenarios
 
 
 def make_env(scenario_name, num_agents=2, num_landmarks=2):

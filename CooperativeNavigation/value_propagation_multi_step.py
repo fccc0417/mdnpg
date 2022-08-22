@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from rl_utils_vp import *
 
 class ValueNet(torch.nn.Module):
+    """Value neural network"""
     def __init__(self, state_dim):
         super(ValueNet, self).__init__()
         self.fc1 = nn.Linear(state_dim, 128)
@@ -16,6 +17,7 @@ class ValueNet(torch.nn.Module):
 
 
 class PolicyNet(torch.nn.Module):
+    """Policy neural network"""
     def __init__(self, state_dim, action_dim):
         super(PolicyNet, self).__init__()
         self.dense1 = nn.Linear(state_dim, 64)
@@ -29,6 +31,7 @@ class PolicyNet(torch.nn.Module):
 
 
 class DualFuncNet(torch.nn.Module):
+    """Dual function neural network"""
     def __init__(self, state_dim, action_num):
         super(DualFuncNet, self).__init__()
         input_dim = state_dim+action_num
@@ -44,12 +47,22 @@ class DualFuncNet(torch.nn.Module):
 
 
 class ValuePropagation:
-    def __init__(self, num_agents, state_dim, action_dim, pi, eta=0.1, lmbda=0.01, gamma=0.99, T_dual=4, value_lr=5e-4,
+    """Value propagation algorithm.
+    Attributes:
+        eta: coefficient for bias and variance trade-off.
+        lmbda: coefficient of regularization.
+        T_dual: times for update dual functions.
+        value_lr: value function learning rate.
+        policy_lr: policy learning rate.
+        dual_lr: dual function learning rate.
+        n_steps: steps for n-step TD estimation.
+        max_eps_len: max_eps_len = real max_eps_len + n_steps, to truncate the n-step rewards.
+    """
+    def __init__(self, num_agents, state_dim, action_dim, eta=0.1, lmbda=0.01, gamma=0.99, T_dual=4, value_lr=5e-4,
                  policy_lr=5e-4, dual_lr=5e-4, n_steps=1, max_eps_len=20):
         self.num_agents = num_agents
         self.state_dim = state_dim
         self.action_dim = action_dim
-        self.pi = pi
         self.eta = eta
         self.lmbda = lmbda
         self.gamma = gamma
@@ -77,6 +90,7 @@ class ValuePropagation:
         return action
 
     def calc_dual_grad(self, idx, transition_dict):
+        """Calculate gradients of dual function"""
         dual_obj = -self.calc_dual_obj(idx, transition_dict)
         dual_loss = torch.mean(dual_obj)
         self.dual_optimizer.zero_grad()
@@ -84,9 +98,11 @@ class ValuePropagation:
 
     @torch.no_grad()
     def update_dual_problem(self):
+        """Update dual network."""
         self.dual_optimizer.step()
 
     def calc_primal_grad(self, idx, transition_dict):
+        """Calculate gradients of primal objective function."""
         # need consensus rho
         primal_obj = self.calc_primal_obj(idx, transition_dict)
         primal_loss = torch.mean(primal_obj)
@@ -96,10 +112,12 @@ class ValuePropagation:
 
     @torch.no_grad()
     def update_primal_problem(self):
+        """Update policy network and value network."""
         self.policy_optimizer.step()
         self.value_optimizer.step()
 
     def calc_dual_obj(self, idx, transition_dict):
+        """Calculate dual function."""
         if len(transition_dict['rewards']) == self.max_eps_len:
             states = torch.tensor(transition_dict['states'][:-self.n_steps], dtype=torch.float)
             actions_list = torch.FloatTensor(transition_dict['actions'][:-self.n_steps])
@@ -124,6 +142,7 @@ class ValuePropagation:
             return -(delta_add_penalty -rho)**2
 
     def calc_dual_obj2(self, idx, transition_dict):
+        """Calculate dual function for the calculation of primal function."""
         if len(transition_dict['rewards']) == self.max_eps_len:
             states = torch.tensor(transition_dict['states'][:-self.n_steps], dtype=torch.float)
             actions_list = torch.FloatTensor(transition_dict['actions'][:-self.n_steps])
@@ -148,6 +167,7 @@ class ValuePropagation:
             return -self.eta * (delta_add_penalty -rho)**2
 
     def calc_primal_obj(self, idx, transition_dict):
+        """Calculate primal objective function."""
         if len(transition_dict['rewards']) == self.max_eps_len:
             states = torch.tensor(transition_dict['states'][:-self.n_steps], dtype=torch.float)
             delta_add_penalty = self.calc_delta_add_penalty(idx, transition_dict)
@@ -169,6 +189,7 @@ class ValuePropagation:
             return primal_obj
 
     def calc_delta_add_penalty(self, idx, transition_dict):
+        """Calculate TD delta (multi-step version) with penalty."""
         nsteps = self.n_steps
         if len(transition_dict['rewards']) == self.max_eps_len:
             states2 = torch.tensor(transition_dict['states'][:-self.n_steps], dtype=torch.float)

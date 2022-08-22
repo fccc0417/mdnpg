@@ -46,12 +46,11 @@ class DualFuncNet(torch.nn.Module):
 
 
 class ValuePropagation:
-    def __init__(self, num_agents, state_dim, action_dim, pi, eta=0.1, lmbda=0.01, gamma=0.99, T_dual=4, value_lr=5e-4,
+    def __init__(self, num_agents, state_dim, action_dim, eta=0.1, lmbda=0.01, gamma=0.99, T_dual=4, value_lr=5e-4,
                  policy_lr=5e-4, dual_lr=5e-4):
         self.num_agents = num_agents
         self.state_dim = state_dim
         self.action_dim = action_dim
-        self.pi = pi
         self.eta = eta
         self.lmbda = lmbda
         self.gamma = gamma

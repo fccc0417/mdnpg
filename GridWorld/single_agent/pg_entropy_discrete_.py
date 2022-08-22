@@ -59,7 +59,7 @@ class ValueNet(torch.nn.Module):
         return self.fc2(x)
 
 
-class Momentum_PG:
+class PGwithEntropy:
     """ Momentum PG算法 """
     def __init__(self, state_space, action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr):
         self.state_dim = state_space.shape[0]
@@ -158,7 +158,7 @@ def run(seed):
     agent_pos = np.random.randint(0, 10, 2)
     env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
     # env = GridWorldEnv(grid_map_path=map_path_4)
-    agent = Momentum_PG(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr)
+    agent = PGwithEntropy(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr)
     return_list = []
 
     for i in range(10):

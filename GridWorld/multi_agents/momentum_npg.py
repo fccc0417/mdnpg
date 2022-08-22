@@ -91,7 +91,6 @@ class MomentumNPG:
                                                      new_action_dists))
             new_obj = self.compute_surrogate_obj(states, actions, advantage,
                                                  old_log_probs, new_actor)
-            # if new_obj > 0 and kl_div < self.kl_constraint:
             if new_obj > old_obj and kl_div < self.kl_constraint:
                 return coef * max_vec
         return torch.zeros_like(old_para)  #old_para

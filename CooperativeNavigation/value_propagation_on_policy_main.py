@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import argparse
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -9,9 +8,8 @@ from particle_envs import make_particleworld
 import torch
 import os
 
-seed = 4
+seed = 0
 torch.manual_seed(seed)
-# device = torch.device("cpu")  
 
 
 def set_args(num_agents=1, topology='dense'):
@@ -58,7 +56,7 @@ def run(args, env_name):
 
     agents = []
     for _ in range(args.num_agents):
-        agents.append(ValuePropagation(num_agents=args.num_agents, state_dim=len(sample_obs), action_dim=args.action_dim, pi=pi,
+        agents.append(ValuePropagation(num_agents=args.num_agents, state_dim=len(sample_obs), action_dim=args.action_dim,
                                        eta=args.eta, lmbda=args.lmbda, gamma=args.gamma, T_dual=args.T_dual,
                                        value_lr=args.value_lr, policy_lr=args.policy_lr, dual_lr=args.dual_lr,
                                        n_steps=args.n_steps, max_eps_len=args.max_eps_len))
@@ -71,7 +69,10 @@ def run(args, env_name):
     for i in range(10):
         with tqdm(total=int(args.num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(args.num_episodes / 10)):
+
+                # Update the dual parameter.
                 for dual_epoch in range(args.T_dual):
+                    # Sample a trajectory.
                     state = env.reset()
                     state = np.concatenate(state).ravel()
                     state_list = []
@@ -96,6 +97,8 @@ def run(args, env_name):
                         reset = t == args.max_eps_len - 1
                         if done or reset:
                             break
+
+                    # Update.
                     for idx, agent in enumerate(agents):
                         transition_dict = {'states': state_list, 'actions': actions_list, 'next_states': next_state_list,
                                            'rewards': reward_lists[idx], 'dones': done_list}
@@ -104,6 +107,8 @@ def run(args, env_name):
                     for idx, agent in enumerate(agents):
                         agent.update_dual_problem()
 
+                # Update the primal parameters, i.e., value and policy parameters
+                # Sample a trajectory.
                 episode_returns = 0
                 state = env.reset()
                 state = np.concatenate(state).ravel()
@@ -132,6 +137,7 @@ def run(args, env_name):
                     if done or reset:
                         break
 
+                # Update.
                 for idx, agent in enumerate(agents):
                     transition_dict = {'states': state_list, 'actions': actions_list, 'next_states': next_state_list,
                                        'rewards': reward_lists[idx], 'dones': done_list}

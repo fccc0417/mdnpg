@@ -10,7 +10,7 @@ Code for paper "....."
 
 ## Code Structure
 
-├─ Cooperative navigation　# Experiments on Cooperative navigation.  
+├─ CooperativeNavigation　# Experiments on Cooperative navigation.  
 │　　├─ multiagent　# Code for environment [[REF](https://github.com/openai/multiagent-particle-envs)].       
 │　　│　　├─ core.py  
 │　　│　　├─ environment.py  

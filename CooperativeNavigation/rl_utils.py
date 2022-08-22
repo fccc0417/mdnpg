@@ -5,10 +5,8 @@ import json
 import numpy as np
 
 
-'''
-Load the connectivity weight matrix.
-'''
 def load_pi(num_agents, topology):
+    """Load the connectivity weight matrix."""
     wsize = num_agents
     if topology == 'dense':
         topo = 1
@@ -22,10 +20,8 @@ def load_pi(num_agents, topology):
     return cdict['pi']
 
 
-'''
-Take parameters consensus.
-'''
 def take_param_consensus(agents, pi):
+    """Take parameters consensus."""
     layer_1_w_lists = []
     layer_1_b_lists = []
     layer_2_w_lists = []
@@ -83,29 +79,9 @@ def take_param_consensus(agents, pi):
     return agents
 
 
-'''
-def take_grad_consensus(v_k_lists, pi):
-    consensus_v_k_lists = []
-    for idx in range(len(v_k_lists)):
-        consensus_v_k_list = []
-        for i in range(len(v_k_lists)):
-            c_v_k_list = []
-            for j in range(len(v_k_lists)):
-                c_v_k_list.append(v_k_lists[j][i])
-            grads = torch.sum(torch.stack(tuple(c_v_k_list)) * torch.tensor(pi[idx]).unsqueeze(-1), 0).clone()
-            consensus_v_k_list.append(grads)
-        consensus_v_k_lists.append(consensus_v_k_list)
-    return consensus_v_k_lists
-'''
-
-
-'''
-Take gradient consensus.
-'''
 def take_grad_consensus(grad_lists, pi):
+    """Take gradient consensus."""
     re_grad_lists = []
-
-    # TODO use torch.permute to implement this
     for i in range(len(grad_lists)):  # for the i-th copy in all agents
         re_grad_list = []
         for j in range(len(grad_lists)):
@@ -115,17 +91,15 @@ def take_grad_consensus(grad_lists, pi):
     consensus_grad_lists = []
     for idx in range(len(grad_lists)):
         consensus_grad_list = []
-        for i in range(len(grad_lists)):  #the i-th copy for idx-agent
+        for i in range(len(grad_lists)):  # the i-th copy for idx-agent
             grads = torch.sum(torch.stack(tuple(re_grad_lists[i])) * torch.tensor(pi[idx]).unsqueeze(-1), 0).clone()
             consensus_grad_list.append(grads)
         consensus_grad_lists.append(consensus_grad_list)
     return consensus_grad_lists
 
 
-'''
-Update gradient estimator y^{t+1} using gradient tracking.
-'''
 def update_y_lists(y_lists, prev_v_lists, v_lists):
+    """Update gradient estimator y^{t+1} using gradient tracking."""
     next_y_lists = []
     for y_list, prev_v_list, v_list in zip(y_lists, prev_v_lists, v_lists):
         next_y_list = []
@@ -136,21 +110,16 @@ def update_y_lists(y_lists, prev_v_lists, v_lists):
     return next_y_lists
 
 
-'''
-Update parameters of an agent.
-'''
 def update_param(agent, v_k_list, lr=3e-4):
-    '''update parameters for an agent'''
+    """update parameters for an agent"""
     for idx, actor in enumerate(agent.actors):
         old_para = torch.nn.utils.convert_parameters.parameters_to_vector(actor.parameters())
         new_para = old_para + lr * v_k_list[idx]
         torch.nn.utils.convert_parameters.vector_to_parameters(new_para, actor.parameters())
 
 
-'''
-Move average for averaged returns.
-'''
 def moving_average(a, window_size):
+    """Move average for averaged returns."""
     cumulative_sum = np.cumsum(np.insert(a, 0, 0))
     middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
     r = np.arange(1, window_size - 1, 2)
@@ -159,10 +128,8 @@ def moving_average(a, window_size):
     return np.concatenate((begin, middle, end))
 
 
-'''
-Calculate advantage function using GAE.
-'''
 def compute_advantage(gamma, lmbda, td_delta):
+    """Calculate advantage function using GAE."""
     td_delta = td_delta.detach().numpy()
     advantage_list = []
     advantage = 0.0
@@ -173,31 +140,8 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
-'''
-Obtain the flatted gradients.
-'''
-def get_flat_grad(y: torch.Tensor, model, **kwargs):
-    grads = torch.autograd.grad(y, model.parameters(), **kwargs)  # type: ignore
-    return torch.cat([grad.reshape(-1) for grad in grads])
-
-
-'''
-Reset gradient shape from the flatted shape.
-'''
-def set_from_flat_grads(model, flat_params):
-    prev_ind = 0
-    grads = []
-    for param in model.parameters():
-        flat_size = int(np.prod(list(param.size())))
-        grads.append(flat_params[prev_ind:prev_ind + flat_size]) #.view(param.size())
-        prev_ind += flat_size
-    return grads
-
-
-'''
-Initialization for traning agents.
-'''
 def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_eps_len=20):
+    """Initialization for traning agents."""
     prev_v_lists, y_lists = [], []
     for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):
         minibatch_grads_n = []

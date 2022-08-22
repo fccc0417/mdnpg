@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class PolicyNet(torch.nn.Module):
+    """Policy neural network."""
     def __init__(self, state_dim, action_dim):
         super(PolicyNet, self).__init__()
         self.dense1 = nn.Linear(state_dim, 128)
@@ -17,6 +18,7 @@ class PolicyNet(torch.nn.Module):
 
 
 class ValueNet(torch.nn.Module):
+    """Value neural network."""
     def __init__(self, state_dim):
         super(ValueNet, self).__init__()
         self.fc1 = nn.Linear(state_dim, 128)
