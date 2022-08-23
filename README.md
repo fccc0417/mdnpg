@@ -59,14 +59,14 @@ Code for paper "....."
 │　　│　　├─ momentum_npg_discrete.py　# Momentum-based NPG.  
 │　　│　　├─ momentum_pg_discrete.py　# Momentum-based PG.  
 │　　│　　├─ pg_entropy_discrete.py　# PG with entropy.  
-│　　│　　├─ ppo_discrete.py　#  PPO [[REF](https://github.com/boyu-ai/Hands-on-RL)].  
+│　　│　　├─ ppo_discrete.py　#  PPO.  
 │　　│　　└─ svrnpg_discrete.py　# SRVR-NPG.  
 │　　└─ tools  
 │　　 　　└─ tool.py  
 ├─ MountainCar　# Experiments on MountainCarContinuous.    
 │　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
 │　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
-│　　├─ ppo_continuous.py　# PPO [[REF](https://github.com/boyu-ai/Hands-on-RL)].  
+│　　├─ ppo_continuous.py　# PPO.  
 │　　└─ svrnpg_continuous.py　# SRVR-NPG.  
 └─ README.md  
 
