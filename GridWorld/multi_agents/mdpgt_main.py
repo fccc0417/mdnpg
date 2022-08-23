@@ -29,7 +29,7 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--grad_lr', type=float, default=1e-5, help='policy learning rate')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda for GAE')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=10000, help='Number training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance sampling')

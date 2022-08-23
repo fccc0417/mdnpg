@@ -142,7 +142,7 @@ def run(seed=0):
     lmbda = 0.95
     epochs = 10
     eps = 0.2
-    max_eps_len = 200
+    max_eps_len = 100
     random_loc = True  # whether each episode uses a random initial location for an agent
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

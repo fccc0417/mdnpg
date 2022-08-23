@@ -1,3 +1,6 @@
+"""
+Reference: https://github.com/boyu-ai/Hands-on-RL
+"""
 import argparse
 from tqdm import tqdm
 import torch
@@ -180,7 +183,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
     parser.add_argument('--actor_lr', type=float, default=5e-5, help='policy learning rate for initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value to set ISW')

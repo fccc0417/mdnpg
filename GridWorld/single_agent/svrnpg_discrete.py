@@ -215,7 +215,7 @@ def set_args(seed=0):
     parser.add_argument('--init_lr', type=float, default=0, help='actor_lr in initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
     parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
-    parser.add_argument('--max_eps_len', type=int, default=200, help='number of steps per episode')
+    parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
     parser.add_argument('--batch_size', type=int, default=10, help='N')
