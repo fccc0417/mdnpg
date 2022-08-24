@@ -185,5 +185,5 @@ def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_ep
     agents = take_param_consensus(agents, pi)
     for agent, y_list in zip(agents, consensus_y_lists):
         update_param(agent, y_list, lr=lr)
-    return prev_v_lists, y_lists
+    return prev_v_lists, consensus_y_lists
 

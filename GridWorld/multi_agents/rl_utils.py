@@ -94,8 +94,8 @@ def update_y(y, v, prev_v):
 
 def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
     """Initialization for traning agents."""
-    prev_u_list = []
-    v_k_list = []
+    prev_v_list = []
+    y_list = []
 
     for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):
         minibatch_grads_n = []
@@ -122,20 +122,17 @@ def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
 
             advantage = agent.update_value(transition_dict)
             single_traj_grads = agent.compute_grads(transition_dict, advantage)
-            # single_traj_grads = torch.stack(single_traj_grads, dim=0)
             minibatch_grads_n.append(single_traj_grads)
 
-        # minibatch_grads_nn = torch.stack(minibatch_grads_n, dim=0)
-        # avg_grads_n1 = torch.mean(minibatch_grads_nn, dim=0)
         avg_grads_n = torch.mean(torch.stack(minibatch_grads_n, dim=1), dim=1)
-        # s = np.linalg.norm(avg_grads_n - avg_grads_n1, 2)
-        prev_u = copy.deepcopy(avg_grads_n)
-        v_k = copy.deepcopy(avg_grads_n)
-        prev_u_list.append(prev_u)
-        v_k_list.append(v_k)
+        prev_v = copy.deepcopy(avg_grads_n)
+        y_grad = copy.deepcopy(avg_grads_n)
+        prev_v_list.append(prev_v)
+        y_list.append(y_grad)
 
     agents = take_param_consensus(agents, pi)
-    for agent, u_k in zip(agents, prev_u_list):
-        update_param(agent, u_k, lr=lr)
-    return prev_u_list, v_k_list
+    consensus_y_list = take_grad_consensus(y_list)
+    for agent, y in zip(agents, consensus_y_list):
+        update_param(agent, y, lr=lr)
+    return prev_v_list, consensus_y_list
 
