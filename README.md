@@ -1,4 +1,5 @@
-# Decentralized momentum-based natual policy gradient
+# Decentralized Natural Policy Gradient with Variance Reduction for Collaborative Multi-Agent Reinforcement Learning
+
 Code for paper "....."
 
 ## Basic Requirements

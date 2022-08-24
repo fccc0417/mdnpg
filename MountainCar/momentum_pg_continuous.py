@@ -277,7 +277,6 @@ if __name__ == '__main__':
     labels = ['beta=0.8']
     seeds = [0]
 
-
     for beta, seed, label in zip(betas, seeds, labels):
         print(f"beta={beta}, seed={seed}")
         return_list, mv_return_list = run(beta, env_name, seed)
