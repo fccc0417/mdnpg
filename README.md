@@ -1,4 +1,4 @@
-# Decentralized Natural Policy Gradient with Variance Reduction for Collaborative Multi-Agent Reinforcement Learning
+# Decentralized Natural Policy Gradient with Variance Reduction
 
 Code for paper "....."
 
