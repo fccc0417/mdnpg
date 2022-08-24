@@ -64,7 +64,7 @@ Code for paper "....."
 │　　│　　└─ srvrnpg_discrete.py　# SRVR-NPG.  
 │　　└─ tools  
 │　　 　　└─ tool.py  
-├─ MountainCar　# Experiments on MountainCarContinuous.    
+├─ MountainCar　# Experiments on MountainCarContinuous (single agent).     
 │　　├─ momentum_npg_continuous.py　# Momentum-based NPG.   
 │　　├─ momentum_pg_continuous.py　# Momentum-based PG.   
 │　　├─ ppo_continuous.py　# PPO.  
