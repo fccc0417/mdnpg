@@ -1,4 +1,4 @@
-# Decentralized Natural Policy Gradient with Variance Reduction
+# Momentun-based Decentralized Natural Policy Gradient (MDNPG)
 
 Code for paper "....."
 
