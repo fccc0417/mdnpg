@@ -37,8 +37,7 @@ Code for paper "....."
 │　　├─ rl_utils_vp.py  
 │　　├─ value_propagation_one_step.py　# Class of one-step-version VP method.   
 │　　├─ value_propagation_multi_step.py　# Class of multi-step-version VP method.  
-│　　├─ value_propagation_main_on_policy.py　# Main file of on-policy-version VP method.  
-│　　└─ value_propagation_main_off_policy.py　# Main file of off-policy-verion VP method.  
+│　　└─ value_propagation_main_on_policy.py　# Main file of on-policy-version VP method.    
 ├─ GridWorld　# Experiments on GridWorld.  
 │　　├─ envs　# Code for environment.  
 │　　│　　├─ grid_maps  
