@@ -131,7 +131,7 @@ def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
         y_list.append(y_grad)
 
     agents = take_param_consensus(agents, pi)
-    consensus_y_list = take_grad_consensus(y_list)
+    consensus_y_list = take_grad_consensus(y_list, pi)
     for agent, y in zip(agents, consensus_y_list):
         update_param(agent, y, lr=lr)
     return prev_v_list, consensus_y_list
