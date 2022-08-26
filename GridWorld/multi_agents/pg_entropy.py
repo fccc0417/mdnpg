@@ -4,7 +4,7 @@ from rl_utils import *
 
 
 class PGwithEntropy:
-    """ momentum-based NPG algorithm """
+    """ momentum-based PG with entropy algorithm """
     def __init__(self, state_space, action_space, lmbda, critic_lr, gamma, entropy_para, device):
         self.state_dim = state_space.shape[0]
         self.action_dim = action_space.n

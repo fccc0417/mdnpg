@@ -31,7 +31,7 @@ def set_args(num_agents=1, topology='dense'):
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=10000, help='number training episodes')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
-    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for all agents')
+    parser.add_argument('--random_loc', type=bool, default=False, help='whether each episode uses a random initial location for all agents')
     args = parser.parse_args()
     return args
 

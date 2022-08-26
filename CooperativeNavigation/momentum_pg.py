@@ -7,7 +7,7 @@ import copy
 
 
 class MomentumPG:
-    """ momentum-based NPG algorithm """
+    """ momentum-based PG algorithm """
     def __init__(self, num_agents, state_dim, action_dim, lmbda, critic_lr, gamma, device, min_isw, beta):
         state_dim = state_dim
         action_dim = action_dim
