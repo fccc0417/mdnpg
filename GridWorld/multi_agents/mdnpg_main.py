@@ -11,8 +11,8 @@ import os
 from GridWorld.envs.gridworld import GridWorldEnv
 
 
-seeds = [6, 7, 8, 9, 10]
-seed = 11
+seeds = [11, 12, 13, 14, 15]
+seed = 0
 device = torch.device("cpu")
 np.random.seed(seed)
 torch.manual_seed(seed)
