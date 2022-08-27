@@ -1,6 +1,7 @@
 """
 Paper: "An Improved Analysis of (Variance-Reduced) Policy Gradient and Natural Policy Gradient Methods"
 """
+import numpy as np
 import argparse
 from tqdm import tqdm
 import torch
@@ -8,7 +9,6 @@ import torch.nn.functional as F
 import copy
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_single import *
 
 
 def moving_average(a, window_size):
@@ -221,7 +221,6 @@ def set_args(seed=0):
     parser.add_argument('--batch_size', type=int, default=10, help='N')
     parser.add_argument('--epoch_size', type=int, default=2, help='m')
     parser.add_argument('--minibatch_size', type=int, default=3, help='B')
-    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -241,8 +240,7 @@ def run(seed=0):
     critic_lr = args.critic_lr
     kl_constraint = args.kl_constraint
     device = torch.device("cpu")
-    agent_pos = np.random.randint(0, 10, 2)
-    env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
+    env = GridWorldEnv(seed=seed)
     agent = SRVR_NPG(env.observation_space, env.action_space, lmbda, kl_constraint,  critic_lr, gamma, device, min_isw)
 
     initialization(env, agent, max_eps_len=max_eps_len, lr=init_lr, minibatch=1)
@@ -257,8 +255,6 @@ def run(seed=0):
                 minibatch_grads = []
                 for n in range(batch_size):
                     transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-                    if args.random_loc:
-                        agent_pos = agent_pos_reset(env)
                     state = env.reset()
                     done = False
                     for t in range(max_eps_len):
@@ -293,8 +289,6 @@ def run(seed=0):
                     minibatch_pre_grads = []
                     for b in range(minibatch_size):
                         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-                        if args.random_loc:
-                            agent_pos = agent_pos_reset(env)
                         state = env.reset()
                         done = False
                         for t in range(max_eps_len):

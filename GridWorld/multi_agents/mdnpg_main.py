@@ -9,7 +9,6 @@ import torch
 import copy
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_all_envs import *
 
 
 seeds = [6, 7, 8, 9, 10]
@@ -34,7 +33,6 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
     parser.add_argument('--init_minibatch_size', type=int, default=32, help='number of trajectories for batch gradients')
-    parser.add_argument('--random_loc', type=bool, default=False, help='whether each episode uses a random initial location for all agents')
     args = parser.parse_args()
     return args
 
@@ -48,11 +46,9 @@ def run(args):
     writer = SummaryWriter(fpath2)
 
     agents = []
-    agent_pos = np.random.randint(0, 10, 2)
     envs = []
-    print(agent_pos)
     for i in range(args.num_agents):
-        env = GridWorldEnv(seed=seeds[i], agent_pos=agent_pos)
+        env = GridWorldEnv(seed=seeds[i])
         envs.append(env)
         agents.append(MomentumNPG(state_space=env.observation_space, action_space=env.action_space, lmbda=args.lmbda,
                                   kl_constraint=args.kl_constraint, alpha=args.alpha,
@@ -103,10 +99,6 @@ def run(args):
                 states_lists = []
                 transition_dicts = []
                 advantage_list = []
-
-                # Whether randomly generate the initial location of agents.
-                if args.random_loc:
-                    agent_pos = agent_pos_reset_4_envs(envs)
 
                 for idx, (agent, env) in enumerate(zip(agents, envs)):
                     # Sample an episode.

@@ -42,9 +42,7 @@ Code for paper "....."
 │　　├─ envs　# Code for environment.  
 │　　│　　├─ grid_maps  
 │　　│　　├─ gridworld.py  
-│　　│　　├─ gridworld_4_test.py  
-│　　│　　├─ init_agent_pos_4_all_envs.py  
-│　　│　　└─ init_agent_pos_4_single.py  
+│　　│　　└─ gridworld_4_test.py  
 │　　├─ multi_agents　# Multi-agent GridWorld.  
 │　　│　　├─ topology　# Generate connectivity topology [[REF](https://github.com/xylee95/MD-PGT)].      
 │　　│　　├─ nets.py　# Policy network and value network.    

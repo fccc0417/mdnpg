@@ -8,23 +8,24 @@ class GridWorldEnv(gym.Env):
     """Class of GridWorld.
     Randomly generate the positions of goal and of obstacles.
     """
-    def __init__(self, grid_map_path=path, agent_pos=np.array([0, 0]), seed=0):
+    def __init__(self, grid_map_path=path, random_pos=False, seed=0):
         self.seed = seed
         np.random.seed(self.seed)
-
-        self.init_pos = agent_pos
+        self.random_pos = random_pos
+        if self.random_pos:
+            self.agent_pos = np.random.randint(0, 10, 2)
+        else:
+            self.agent_pos = np.array([0, 0])
         self.pos_dim = 2
         self.actions = [0, 1, 2, 3]
         self.action_space = spaces.Discrete(4)
         # self.action_dict = {0: "up", 1: "down", 2: "left", 3: "right"}
         self.action_dict = {0: [-1, 0], 1: [1, 0], 2: [0, -1], 3: [0, 1]}
         self.grid_map = np.load(grid_map_path)
-        self.agent_pos = self.init_pos
 
-        pos_0 = np.array([0, 0])
         while True:
             goal_pos = np.random.randint(0, 10, 2)
-            if not ((goal_pos == self.agent_pos).all() or (goal_pos == pos_0).all()):
+            if not (goal_pos == self.agent_pos).all():
                 self.grid_map[goal_pos[0]][goal_pos[1]] = 'G'
                 self.goal_pos = goal_pos
                 break
@@ -33,7 +34,7 @@ class GridWorldEnv(gym.Env):
             pos_list = np.random.randint(0, 10, (5, 2))
             flag = False
             for idx, pos in enumerate(pos_list):
-                if (pos == self.agent_pos).all() or (pos == self.goal_pos).all() or (pos == pos_0).all():
+                if (pos == self.agent_pos).all() or (pos == self.goal_pos).all():
                     flag = True
                     break
                 for j in range(idx + 1, len(pos_list)):
@@ -50,7 +51,6 @@ class GridWorldEnv(gym.Env):
                 break
 
         self.grid_shape = self.grid_map.shape
-
         obs = self.get_observation()
         self.obs_dim = len(obs)
         self.observation_space = spaces.Box(low=-np.inf, high=+np.inf, shape=(self.obs_dim,), dtype=np.float32)
@@ -59,7 +59,24 @@ class GridWorldEnv(gym.Env):
 
     def reset(self):
         """Reset the GridWorld."""
-        self.agent_pos = self.init_pos
+        if self.random_pos:
+            while True:
+                agent_pos = np.random.randint(0, 10, 2)
+                flag = False
+                if (agent_pos == self.goal_pos).all():
+                    continue
+                for pos in self.obstacle_pos:
+                    if (agent_pos == pos).all():
+                        flag = True
+                        break
+
+                if flag:
+                    continue
+                else:
+                    self.agent_pos = agent_pos
+                    break
+        else:
+            self.agent_pos = np.array([0, 0])
         obs = self.get_observation()
         return obs
 

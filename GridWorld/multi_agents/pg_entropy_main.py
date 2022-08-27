@@ -8,7 +8,6 @@ from rl_utils import *
 from GridWorld.tools.tool import *
 from pg_entropy import PGwithEntropy
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_all_envs import *
 import torch
 import os
 
@@ -31,7 +30,6 @@ def set_args(num_agents=1, topology='dense'):
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=10000, help='number training episodes')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
-    parser.add_argument('--random_loc', type=bool, default=False, help='whether each episode uses a random initial location for all agents')
     args = parser.parse_args()
     return args
 
@@ -47,10 +45,8 @@ def run(args):
 
     agents = []
     envs = []
-    agent_pos = np.random.randint(0, 10, 2)
-    print(agent_pos)
     for i in range(args.num_agents):
-        env = GridWorldEnv(seed=seeds[i], agent_pos=agent_pos)
+        env = GridWorldEnv(seed=seeds[i])
         envs.append(env)
         agents.append(
             PGwithEntropy(state_space=env.observation_space, action_space=env.action_space, lmbda=args.lmbda,
@@ -81,10 +77,6 @@ def run(args):
 
                 episode_returns = 0
                 grad_list = []
-
-                # Whether randomly generate the initial location of agents.
-                if args.random_loc:
-                    agent_pos = agent_pos_reset_4_envs(envs)
 
                 for idx, (agent, env) in enumerate(zip(agents, envs)):
                     # Sample an episode.

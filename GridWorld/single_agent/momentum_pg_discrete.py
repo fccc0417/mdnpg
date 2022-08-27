@@ -2,13 +2,13 @@
 Reference: https://github.com/boyu-ai/Hands-on-RL
 """
 import argparse
+import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import copy
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_single import *
 
 
 def moving_average(a, window_size):
@@ -188,7 +188,6 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value to set ISW')
     parser.add_argument('--minibatch_size', type=int, default=32, help='number of trajectory for batch gradients in initialization')
-    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -208,8 +207,7 @@ def run(beta, seed):
     actor_lr = args.actor_lr
     max_eps_len = args.max_eps_len
     device = torch.device("cpu")
-    agent_pos = np.random.randint(0, 10, 2)
-    env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
+    env = GridWorldEnv(seed=seed)
     # env = GridWorldEnv(grid_map_path=map_path_4)
     agent = Momentum_PG(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr)
     old_policy = copy.deepcopy(agent.actor)
@@ -224,8 +222,6 @@ def run(beta, seed):
                 old_policy = copy.deepcopy(agent.actor)
                 episode_return = 0
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-                if args.random_loc:
-                    agent_pos = agent_pos_reset(env)
                 state = env.reset()
                 done = False
                 for t in range(max_eps_len):  #while not done:

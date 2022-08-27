@@ -3,10 +3,10 @@ Reference: https://github.com/boyu-ai/Hands-on-RL
 """
 import torch
 import torch.nn.functional as F
+import numpy as np
 import os
 from tqdm import tqdm
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_single import *
 
 
 def moving_average(a, window_size):
@@ -29,15 +29,13 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
-def train_on_policy_agent(env, agent, num_episodes, max_eps_len=150, random_loc=True):
+def train_on_policy_agent(env, agent, num_episodes, max_eps_len=150):
     return_list = []
     for i in range(10):
         with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes/10)):
                 episode_return = 0
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-                if random_loc:
-                    agent_pos = agent_pos_reset(env)
                 state = env.reset()
                 done = False
                 for t in range(max_eps_len):
@@ -143,16 +141,14 @@ def run(seed=0):
     epochs = 10
     eps = 0.2
     max_eps_len = 100
-    random_loc = True  # whether each episode uses a random initial location for an agent
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    agent_pos = np.random.randint(0, 10, 2)
-    env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
+    env = GridWorldEnv(seed=seed)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,
                 epochs, eps, gamma, device)
-    return_list = train_on_policy_agent(env, agent, num_episodes, max_eps_len, random_loc)
+    return_list = train_on_policy_agent(env, agent, num_episodes, max_eps_len)
     mv_return_list = moving_average(return_list, 9)
     return return_list, mv_return_list
 

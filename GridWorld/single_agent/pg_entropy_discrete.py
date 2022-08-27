@@ -2,12 +2,12 @@
 Paper: "A Decentralized Policy Gradient Approach to Multi-Task Reinforcement Learning"
 """
 import argparse
+import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import os
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_single import *
 
 
 def moving_average(a, window_size):
@@ -130,7 +130,6 @@ def set_args(seed=0):
     parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
-    parser.add_argument('--random_loc', type=bool, default=True, help='whether each episode uses a random initial location for an agent')
     args = parser.parse_args()
     return args
 
@@ -148,8 +147,7 @@ def run(seed):
     actor_lr = args.actor_lr
     max_eps_len = args.max_eps_len
     device = torch.device("cpu")
-    agent_pos = np.random.randint(0, 10, 2)
-    env = GridWorldEnv(seed=seed, agent_pos=agent_pos)
+    env = GridWorldEnv(seed=seed)
     agent = PGwithEntropy(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr)
     return_list = []
 
@@ -158,8 +156,6 @@ def run(seed):
             for i_episode in range(int(num_episodes / 10)):
                 episode_return = 0
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-                if args.random_loc:
-                    agent_pos = agent_pos_reset(env)
                 state = env.reset()
                 done = False
                 for t in range(max_eps_len):

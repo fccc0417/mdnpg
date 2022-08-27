@@ -9,7 +9,6 @@ from rl_utils import *
 from GridWorld.tools.tool import *
 from momentum_pg import MomentumPG
 from GridWorld.envs.gridworld import GridWorldEnv
-from GridWorld.envs.init_agent_pos_4_all_envs import *
 import torch
 import copy
 import os
@@ -34,7 +33,6 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance sampling')
     parser.add_argument('--topology', type=str, default=topology, choices=('dense', 'ring', 'bipartite'))
-    parser.add_argument('--random_loc', type=bool, default=False, help='whether each episode uses a random initial location for all agents')
     parser.add_argument('--init_minibatch_size', type=int, default=10, help='number of trajectories for batch gradient in initialization')
     args = parser.parse_args()
     return args
@@ -50,11 +48,9 @@ def run(args):
     writer = SummaryWriter(fpath2)
 
     agents = []
-    agent_pos = np.random.randint(0, 10, 2)
     envs = []
-    print(agent_pos)
     for i in range(args.num_agents):
-        env = GridWorldEnv(seed=seeds[i], agent_pos=agent_pos)
+        env = GridWorldEnv(seed=seeds[i])
         envs.append(env)
 
         agents.append(
@@ -103,10 +99,6 @@ def run(args):
 
                 episode_returns = 0
                 v_list = []
-
-                # Whether randomly generate the initial location of agents.
-                if args.random_loc:
-                    agent_pos = agent_pos_reset_4_envs(envs)
 
                 for idx, (agent, env) in enumerate(zip(agents, envs)):
                     # Sample an episode.
