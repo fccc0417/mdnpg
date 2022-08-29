@@ -62,10 +62,10 @@ class MomentumPG:
         """Calculate importance weight."""
         weight_list = []
         for idx, (actor, phi) in enumerate(zip(self.actors, phis)):
-            log_probs = torch.log(actor(states).gather(1, actions_list[idx].unsqueeze(1))).detach()
-            prob_tau = torch.prod(log_probs)
-            old_policy_log_probs = torch.log(phi(states).gather(1, actions_list[idx].unsqueeze(1))).detach()
-            prob_old_tau = torch.prod(old_policy_log_probs)
+            probs = actor(states).gather(1, actions_list[idx].unsqueeze(1)).detach()
+            prob_tau = torch.prod(probs)
+            old_policy_probs = phi(states).gather(1, actions_list[idx].unsqueeze(1)).detach()
+            prob_old_tau = torch.prod(old_policy_probs)
             weight = prob_old_tau / (prob_tau + 1e-8)
             weight = np.max((min_isw, weight))
             weight_list.append(weight)

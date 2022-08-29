@@ -185,12 +185,14 @@ class Momentum_NPG_Continuous:
         mu1, std1 = self.actor(state_list)
         action_dists = torch.distributions.Normal(mu1.detach(), std1.detach())
         log_probs = action_dists.log_prob(action_list)
-        prob_tau = torch.prod(log_probs)
+        probs = torch.exp(log_probs)
+        prob_tau = torch.prod(probs)
 
         mu2, std2 = phi(state_list)
         old_action_dists = torch.distributions.Normal(mu2.detach(), std2.detach())
         old_policy_log_probs = old_action_dists.log_prob(action_list)
-        prob_old_tau = torch.prod(old_policy_log_probs)
+        old_policy_probs = torch.exp(old_policy_log_probs)
+        prob_old_tau = torch.prod(old_policy_probs)
         weight = prob_old_tau / (prob_tau + 1e-8)
         weight = np.max((min_isw, weight))
         return weight
