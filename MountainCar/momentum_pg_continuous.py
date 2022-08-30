@@ -55,11 +55,7 @@ def initialization(sample_env, agent, lr=1e-4, minibatch=10):
         single_traj_grads = agent.compute_grads(transition_dict, advantage)
         minibatch_grads.append(single_traj_grads)
 
-    # update policy network
-    # need grads to be shape num_agent x list of grads of every layer
-    # minibatch_grads = np.asarray(minibatch_grads, dtype=object)
-    prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  #np.mean(minibatch_grads) or x.mean() # average across batch
-    # prev_v = minibatch_grads.tolist()
+    prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)  
 
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
     new_para = old_para + lr * prev_v
@@ -139,16 +135,16 @@ class Momentum_PG_Continuous:
     def compute_IS_weight(self, action_list, state_list, phi, min_isw):
         mu1, std1 = self.actor(state_list)
         action_dists = torch.distributions.Normal(mu1.detach(), std1.detach())
-        log_probs = action_dists.log_prob(action_list)
-        probs = torch.exp(log_probs)
-        prob_tau = torch.prod(probs)
+        log_probs = action_dists.log_prob(action_list)  # log of PDF
+        probs = torch.exp(log_probs)  # probability density
 
         mu2, std2 = phi(state_list)
         old_action_dists = torch.distributions.Normal(mu2.detach(), std2.detach())
-        old_policy_log_probs = old_action_dists.log_prob(action_list)
-        old_policy_probs = torch.exp(old_policy_log_probs)
-        prob_old_tau = torch.prod(old_policy_probs)
-        weight = prob_old_tau / (prob_tau + 1e-8)
+        old_policy_log_probs = old_action_dists.log_prob(action_list)  # log of PDF
+        old_policy_probs = torch.exp(old_policy_log_probs)  # probability density
+
+        weights = old_policy_probs / (probs + 1e-8)
+        weight = torch.prod(weights)
         weight = np.max((min_isw, weight))
         return weight
 

@@ -125,10 +125,9 @@ class Momentum_PG:
 
     def compute_IS_weight(self, action_list, state_list, phi, min_isw):
         probs = self.actor(state_list).gather(1, action_list).detach()
-        prob_tau = torch.prod(probs)
         old_policy_probs = phi(state_list).gather(1, action_list).detach()
-        prob_old_tau = torch.prod(old_policy_probs)
-        weight = prob_old_tau / (prob_tau + 1e-8)
+        weights = old_policy_probs / (probs + 1e-8)
+        weight = torch.prod(weights)
         weight = np.max((min_isw, weight))
         return weight
 
