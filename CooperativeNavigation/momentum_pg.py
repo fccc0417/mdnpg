@@ -60,15 +60,22 @@ class MomentumPG:
 
     def compute_IS_weight(self, actions_list, states, phis, min_isw):
         """Calculate importance weight."""
-        weight_list = []
+        probs_list = []
+        old_probs_list = []
         for idx, (actor, phi) in enumerate(zip(self.actors, phis)):
             probs = actor(states).gather(1, actions_list[idx].unsqueeze(1)).detach()
-            prob_tau = torch.prod(probs)
+            probs_list.append(probs)
             old_policy_probs = phi(states).gather(1, actions_list[idx].unsqueeze(1)).detach()
-            prob_old_tau = torch.prod(old_policy_probs)
-            weight = prob_old_tau / (prob_tau + 1e-8)
-            weight = np.max((min_isw, weight))
-            weight_list.append(weight)
+            old_probs_list.append(old_policy_probs)
+
+        probs_list_t = torch.stack(probs_list).squeeze()
+        old_policy_probs_t = torch.stack(old_probs_list).squeeze()
+        prod_probs = torch.prod(probs_list_t, dim=0)
+        prod_old_probs = torch.prod(old_policy_probs_t, dim=0)
+        weights = prod_old_probs / (prod_probs + 1e-8)
+        weight = torch.prod(weights)
+        weight = np.max((min_isw, weight))
+        weight_list = [weight for _ in self.actors]
         return weight_list
 
     def compute_grad_traj_prev_weights(self, states, actions_list, phis, advantage):
