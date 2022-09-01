@@ -108,7 +108,7 @@ class MomentumNPG:
         """Calculate importance weight."""
         probs = self.actor(state_list).gather(1, action_list).detach()
         old_policy_probs = phi(state_list).gather(1, action_list).detach()
-        weights = old_policy_probs / (probs + 1e-8)
+        weights = old_policy_probs / probs  # (probs + 1e-8)
         weight = torch.prod(weights)
         weight = np.max((min_isw, weight))
         return weight
