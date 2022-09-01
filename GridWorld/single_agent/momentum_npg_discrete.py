@@ -231,7 +231,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
-    parser.add_argument('--kl_constraint', type=float, default=8e-5, help='kl_constraint')
+    parser.add_argument('--kl_constraint', type=float, default=2.5e-5, help='kl_constraint')
     parser.add_argument('--alpha', type=float, default=0.1, help='alpha')
     parser.add_argument('--actor_lr', type=float, default=1e-4, help='policy learning rate used in initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
@@ -261,7 +261,7 @@ def run(beta, seed):
     max_eps_len = args.max_eps_len
     alpha = args.alpha
     device = torch.device("cpu")
-    env = GridWorldEnv(seed=seed)
+    env = GridWorldEnv(seed=seed, random_pos=True)
     agent = Momentum_NPG(env.observation_space, env.action_space, lmbda, kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta)
     old_policy = copy.deepcopy(agent.actor)
     prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)

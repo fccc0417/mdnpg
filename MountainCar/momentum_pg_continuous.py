@@ -170,8 +170,7 @@ class Momentum_PG_Continuous:
         obj_grad = self.compute_grads(transition_dict, advantage)
         grad_v = self.compute_v(obj_grad, prev_v, isw, prev_g, self.beta)
 
-        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(
-            self.actor.parameters())
+        old_para = torch.nn.utils.convert_parameters.parameters_to_vector(self.actor.parameters())
         new_para = old_para + lr * grad_v
 
         torch.nn.utils.convert_parameters.vector_to_parameters(
@@ -209,7 +208,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_episodes', type=int, default=5000, help='number of training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum importance weight')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
     parser.add_argument('--minibatch_size', type=int, default=1, help='number of trajectory for batch gradient in initialization')
     args = parser.parse_args()
     return args

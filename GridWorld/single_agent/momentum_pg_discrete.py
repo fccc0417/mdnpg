@@ -180,12 +180,12 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--gamma', type=float, default=0.99, help='Single agent momentum PG')
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
-    parser.add_argument('--actor_lr', type=float, default=5e-5, help='policy learning rate for initialization')
+    parser.add_argument('--actor_lr', type=float, default=2.5e-4, help='policy learning rate for initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
-    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value to set ISW')
+    parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
     parser.add_argument('--minibatch_size', type=int, default=32, help='number of trajectory for batch gradients in initialization')
     args = parser.parse_args()
     return args
@@ -206,8 +206,7 @@ def run(beta, seed):
     actor_lr = args.actor_lr
     max_eps_len = args.max_eps_len
     device = torch.device("cpu")
-    env = GridWorldEnv(seed=seed)
-    # env = GridWorldEnv(grid_map_path=map_path_4)
+    env = GridWorldEnv(seed=seed, random_pos=True)
     agent = Momentum_PG(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr)
     old_policy = copy.deepcopy(agent.actor)
     prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)

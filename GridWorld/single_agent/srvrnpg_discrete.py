@@ -238,7 +238,7 @@ def run(seed=0):
     critic_lr = args.critic_lr
     kl_constraint = args.kl_constraint
     device = torch.device("cpu")
-    env = GridWorldEnv(seed=seed)
+    env = GridWorldEnv(seed=seed, random_pos=True)
     agent = SRVR_NPG(env.observation_space, env.action_space, lmbda, kl_constraint,  critic_lr, gamma, device, min_isw)
 
     initialization(env, agent, max_eps_len=max_eps_len, lr=init_lr, minibatch=1)

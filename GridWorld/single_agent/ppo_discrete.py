@@ -144,7 +144,7 @@ def run(seed=0):
     max_eps_len = 100
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    env = GridWorldEnv(seed=seed)
+    env = GridWorldEnv(seed=seed, random_pos=True)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,

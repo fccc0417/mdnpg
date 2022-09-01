@@ -125,7 +125,7 @@ def set_args(seed=0):
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda')
     parser.add_argument('--entropy_para', type=float, default=0.1, help='entropy parameter')
-    parser.add_argument('--actor_lr', type=float, default=8e-5, help='policy learning rate')
+    parser.add_argument('--actor_lr', type=float, default=2.5e-4, help='policy learning rate')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
@@ -147,7 +147,7 @@ def run(seed):
     actor_lr = args.actor_lr
     max_eps_len = args.max_eps_len
     device = torch.device("cpu")
-    env = GridWorldEnv(seed=seed)
+    env = GridWorldEnv(seed=seed, random_pos=True)
     agent = PGwithEntropy(env.observation_space, env.action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr)
     return_list = []
 
