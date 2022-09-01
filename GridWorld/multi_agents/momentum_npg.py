@@ -137,7 +137,7 @@ class MomentumNPG:
         states = torch.tensor(states_list, dtype=torch.float).to(self.device)
         old_action_dists = torch.distributions.Categorical(self.actor(states).detach())
 
-        # 用共轭梯度法计算x = H^(-1)g
+        # conjugate gradient method
         descent_direction = self.conjugate_gradient(y, states, old_action_dists)
 
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
