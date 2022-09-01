@@ -14,8 +14,8 @@ import copy
 import os
 
 
-seeds = [11, 12, 13, 14, 15] 
-seed = 0
+seeds = [0, 1, 2, 3, 4]
+seed = 5
 np.random.seed(seed)
 torch.manual_seed(seed)
 device = torch.device("cpu")
