@@ -352,8 +352,8 @@ if __name__ == '__main__':
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(env_name, seed)
-        # np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_srvrnpg_return.npy'), return_list)
         np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_srvrnpg_avg_return.npy'), mv_return_list)
+        # np.save(os.path.join('records/' + env_name + '_' + str(seed) + '_srvrnpg_return.npy'), return_list)
         return_lists.append(return_list)
         mv_return_lists.append(mv_return_list)
 

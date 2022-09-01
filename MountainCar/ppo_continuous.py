@@ -171,5 +171,6 @@ if __name__ == '__main__':
         print(f"seed={seed}")
         return_list, mv_return_list = run(seed, env_name)
         np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_ppo_avg_return.npy'), mv_return_list)
+        # np.save(os.path.join('records/'+env_name+'_'+str(seed)+'_ppo_return.npy'), return_list)
 
 

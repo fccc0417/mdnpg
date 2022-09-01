@@ -93,13 +93,12 @@ class Momentum_PG_Continuous:
     def __init__(self,  state_space, action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr):
         state_dim = state_space.shape[0]
         action_dim = action_space.shape[0]
-        # 策略网络参数不需要优化器更新
         self.actor = PolicyNetContinuous(state_dim, action_dim).to(device)
         self.critic = ValueNet(state_dim).to(device)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
                                                  lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
+        self.lmbda = lmbda  
         self.device = device
         self.min_isw = min_isw
         self.beta = beta
@@ -112,7 +111,7 @@ class Momentum_PG_Continuous:
         action = action_dist.sample()
         return [action.item()]
 
-    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  # 计算策略目标
+    def compute_surrogate_obj(self, states, actions, advantage, old_log_probs, actor):  
         mu, std = actor(states)
         action_dists = torch.distributions.Normal(mu, std)
         log_probs = action_dists.log_prob(actions)
@@ -162,7 +161,7 @@ class Momentum_PG_Continuous:
         grad_surrogate = beta * grad + (1 - beta) * (prev_v + grad - isw * prev_g)
         return grad_surrogate
 
-    def policy_learn(self, transition_dict, advantage, prev_v, phi, lr):  # 更新策略函数
+    def policy_learn(self, transition_dict, advantage, prev_v, phi, lr):  
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
 
@@ -193,7 +192,7 @@ class Momentum_PG_Continuous:
         critic_loss = torch.mean(F.mse_loss(self.critic(states), td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()  # 更新价值函数
+        self.critic_optimizer.step()  
 
         advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
         return advantage

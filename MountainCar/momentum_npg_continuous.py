@@ -154,7 +154,7 @@ class Momentum_NPG_Continuous:
             self.actor.parameters())
         old_obj = self.compute_surrogate_obj(states, actions, advantage,
                                              old_log_probs, self.actor)
-        for i in range(15):  # 线性搜索主循环
+        for i in range(15):  
             coef = self.alpha ** i
             new_para = old_para + coef * max_vec
             new_actor = copy.deepcopy(self.actor)
