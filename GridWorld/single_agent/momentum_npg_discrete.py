@@ -88,7 +88,7 @@ class ValueNet(torch.nn.Module):
 
 
 class Momentum_NPG:
-    """Momentum-based NPG for single agent."""
+    """Momentum-based NPG algorithm."""
     def __init__(self,  state_space, action_space, lmbda,
                  kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta):
         state_dim = state_space.shape[0]
@@ -266,7 +266,6 @@ def run(beta, seed):
     old_policy = copy.deepcopy(agent.actor)
     prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)
 
-
     return_list = []
     for i in range(10):
         with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
@@ -307,7 +306,7 @@ if __name__ == '__main__':
     env_name = 'GridWolrld'
     betas = [0.6]
     labels = ['beta=0.6']
-    seeds = [1]
+    seeds = [0]
 
     for beta, label, seed in zip(betas, labels, seeds):
         print(f"beta={beta}, seed={seed}")

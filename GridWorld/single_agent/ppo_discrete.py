@@ -57,6 +57,7 @@ def train_on_policy_agent(env, agent, num_episodes, max_eps_len=150):
                 pbar.update(1)
     return return_list
 
+
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
         super(PolicyNet, self).__init__()
@@ -80,7 +81,7 @@ class ValueNet(torch.nn.Module):
 
 
 class PPO:
-    """Clipped PPO"""
+    """Clipped PPO algorithm."""
     def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
                  lmbda, epochs, eps, gamma, device):
         self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
@@ -156,7 +157,6 @@ def run(seed=0):
 if __name__ == '__main__':
     env_name = 'GridWorld'
     seeds = [0]
-
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(seed)

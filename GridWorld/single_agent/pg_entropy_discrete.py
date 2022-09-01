@@ -53,7 +53,7 @@ class ValueNet(torch.nn.Module):
 
 
 class PGwithEntropy:
-    """ Momentum-based PG """
+    """ PG with entropy-based regularization."""
     def __init__(self, state_space, action_space, lmbda, critic_lr, gamma, device, entropy_para, actor_lr):
         self.state_dim = state_space.shape[0]
         self.action_dim = action_space.n
@@ -185,8 +185,6 @@ def run(seed):
 if __name__ == '__main__':
     env_name = 'GridWorld'
     seeds = [0]
-    agent_pos = np.array([3,6])
-
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list, agent = run(seed)

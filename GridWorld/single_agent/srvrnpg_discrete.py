@@ -1,5 +1,5 @@
 """
-Paper: "An Improved Analysis of (Variance-Reduced) Policy Gradient and Natural Policy Gradient Methods"
+Paper: 'An Improved Analysis of (Variance-Reduced) Policy Gradient and Natural Policy Gradient Methods'
 """
 import numpy as np
 import argparse
@@ -93,8 +93,7 @@ class SRVR_NPG:
         self.action_dim = action_space.n
         self.actor = PolicyNet(self.state_dim, self.action_dim).to(device)
         self.critic = ValueNet(self.state_dim).to(device)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
-                                                 lr=critic_lr)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
         self.lmbda = lmbda
         self.kl_constraint = kl_constraint
@@ -175,9 +174,7 @@ class SRVR_NPG:
     def policy_learn(self, states_list, grad_u):
         states = torch.tensor(states_list, dtype=torch.float).to(self.device)
         old_action_dists = torch.distributions.Categorical(self.actor(states).detach())
-
         descent_direction = self.conjugate_gradient(grad_u, states, old_action_dists)
-
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
         max_coef = torch.sqrt(2 * self.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
         update_grad = descent_direction * max_coef
@@ -223,6 +220,7 @@ def set_args(seed=0):
     parser.add_argument('--minibatch_size', type=int, default=3, help='B')
     args = parser.parse_args()
     return args
+
 
 def run(seed=0):
     args = set_args(seed)
@@ -332,7 +330,6 @@ def run(seed=0):
 if __name__ == '__main__':
     env_name ='GridWorld'
     seeds = [0]
-
     for seed in seeds:
         print(f"seed={seed}")
         return_list, mv_return_list = run(seed)

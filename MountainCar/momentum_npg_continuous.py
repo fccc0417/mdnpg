@@ -89,7 +89,7 @@ class ValueNet(torch.nn.Module):
 
 
 class Momentum_NPG_Continuous:
-    """ momentum based NPG """
+    """ Momentum based NPG algorithm"""
     def __init__(self, state_space, action_space, lmbda,
                  kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta):
         state_dim = state_space.shape[0]

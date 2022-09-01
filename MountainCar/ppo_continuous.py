@@ -82,15 +82,13 @@ class ValueNet(torch.nn.Module):
 
 
 class PPO_Continuous:
-    ''' PPO算法,采用截断方式 '''
+    ''' Clipped-PPO algorithm'''
     def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
                  lmbda, epochs, eps, gamma, device):
         self.actor = PolicyNetContinuous(state_dim, hidden_dim, action_dim).to(device)
         self.critic = ValueNet(state_dim, hidden_dim).to(device)
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
-                                                lr=actor_lr)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
-                                                 lr=critic_lr)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
         self.lmbda = lmbda
         self.epochs = epochs  # epochs for update
@@ -103,7 +101,6 @@ class PPO_Continuous:
         action_dist = torch.distributions.Normal(mu, sigma)
         action = action_dist.sample()
         return [action.item()]
-
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
@@ -118,7 +115,6 @@ class PPO_Continuous:
         mu, std = self.actor(states)
         action_dists = torch.distributions.Normal(mu.detach(), std.detach())
         old_log_probs = action_dists.log_prob(actions)
-
 
         for _ in range(self.epochs):
             mu, std = self.actor(states)

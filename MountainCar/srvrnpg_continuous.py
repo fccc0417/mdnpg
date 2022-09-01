@@ -87,7 +87,6 @@ class ValueNet(torch.nn.Module):
 
 class SRVR_NPG_Continuous:
     """SRVR-NPG algorithm."""
-
     def __init__(self, state_space, action_space, lmbda,
                  kl_constraint, critic_lr, gamma, device, min_isw):
         state_dim = state_space.shape[0]

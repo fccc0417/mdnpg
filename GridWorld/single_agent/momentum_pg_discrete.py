@@ -87,7 +87,7 @@ class ValueNet(torch.nn.Module):
 
 
 class Momentum_PG:
-    """ Momentum-based PG """
+    """ Momentum-based PG algorithm."""
     def __init__(self,  state_space, action_space, lmbda, critic_lr, gamma, device, min_isw, beta, actor_lr):
         state_dim = state_space.shape[0]
         action_dim = action_space.n
