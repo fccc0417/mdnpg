@@ -26,7 +26,7 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
     parser.add_argument('--grad_lr', type=float, default=5e-4, help='policy learning rate in initialization')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda for GAE')
     parser.add_argument('--kl_constraint', type=float, default=1e-5, help='kl_constraint for NPG')
-    parser.add_argument('--alpha', type=float, default=0.01, help='alpha for line search')
+    parser.add_argument('--alpha', type=float, default=0.1, help='alpha for line search')
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=10000, help='number of training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')

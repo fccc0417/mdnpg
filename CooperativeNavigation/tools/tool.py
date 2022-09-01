@@ -1,5 +1,6 @@
 import os
 
+
 def del_file(path):
     """Delete files for a given dictionary."""
     ls = os.listdir(path)
