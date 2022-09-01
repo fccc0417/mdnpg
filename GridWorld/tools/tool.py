@@ -1,6 +1,7 @@
 import os
 
 def del_file(path):
+    """Delete files for a given dictionary."""
     ls = os.listdir(path)
     for i in ls:
         c_path = os.path.join(path, i)
