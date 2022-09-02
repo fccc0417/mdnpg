@@ -272,7 +272,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='value learning rate')
     parser.add_argument('--kl_constraint', type=float, default=0.0005, help='kl constraint')
     parser.add_argument('--alpha', type=float, default=0.1, help='alpha')
-    parser.add_argument('--actor_lr', type=float, default=1, help='learning rate for initialization')
+    parser.add_argument('--init_lr', type=float, default=1, help='learning rate for initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_episodes', type=int, default=5000, help='number training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
@@ -291,7 +291,7 @@ def run(beta, env_name, seed):
     lmbda = args.lmbda
     beta = args.beta
     min_isw = args.min_isw
-    actor_lr = args.actor_lr
+    init_lr = args.init_lr
     minibatch_size = args.minibatch_size
     critic_lr = args.critic_lr
     kl_constraint = args.kl_constraint
@@ -301,7 +301,7 @@ def run(beta, env_name, seed):
     agent = Momentum_NPG_Continuous(sample_env.observation_space, sample_env.action_space, lmbda, kl_constraint, alpha,
                                      critic_lr, gamma, device, min_isw, beta)
     old_policy = copy.deepcopy(agent.actor)
-    prev_v = initialization(sample_env, agent, lr=actor_lr, minibatch=minibatch_size)
+    prev_v = initialization(sample_env, agent, lr=init_lr, minibatch=minibatch_size)
     env = gym.make(env_name)
     env.seed(args.seed)
     return_list = []

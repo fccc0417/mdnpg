@@ -31,38 +31,6 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
-def initialization(sample_env, agent, max_eps_len=150, lr=1e-4, minibatch=1):
-    return_list = []
-    minibatch_grads = []
-    for _ in range(minibatch):
-        episode_return = 0
-        transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-        state = sample_env.reset()
-        done = False
-        # while not done:
-        for t in range(max_eps_len):
-            action = agent.take_action(state)
-            next_state, reward, done, _ = sample_env.step(action)
-            transition_dict['states'].append(state)
-            transition_dict['actions'].append(action)
-            transition_dict['next_states'].append(next_state)
-            transition_dict['rewards'].append(reward)
-            transition_dict['dones'].append(done)
-            state = next_state
-            episode_return += reward
-            if done:
-                break
-        return_list.append(episode_return)
-        advantage = agent.update_value(transition_dict)
-        single_traj_grads = agent.compute_grads(transition_dict, advantage)
-        minibatch_grads.append(single_traj_grads)
-
-    prev_u = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
-    old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
-    new_para = old_para + lr * prev_u
-    torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
-
-
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(PolicyNet, self).__init__()
@@ -209,7 +177,6 @@ def set_args(seed=0):
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='critic_lr')
     parser.add_argument('--kl_constraint', type=float, default=0.05, help='kl_constraint')
     parser.add_argument('--actor_lr', type=float, default=3e-3, help='actor_lr')
-    parser.add_argument('--init_lr', type=float, default=3e-4, help='actor_lr in initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed (default: 0)')
     parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
@@ -230,7 +197,6 @@ def run(seed=0):
     lmbda = args.lmbda
     min_isw = args.min_isw
     actor_lr = args.actor_lr
-    init_lr = args.init_lr
     max_eps_len = args.max_eps_len
     epoch_size = args.epoch_size
     minibatch_size = args.minibatch_size
@@ -241,7 +207,6 @@ def run(seed=0):
     env = GridWorldEnv(seed=seed, random_pos=True)
     agent = SRVR_NPG(env.observation_space, env.action_space, lmbda, kl_constraint,  critic_lr, gamma, device, min_isw)
 
-    initialization(env, agent, max_eps_len=max_eps_len, lr=init_lr, minibatch=1)
 
     return_list = []
     for i in range(10):

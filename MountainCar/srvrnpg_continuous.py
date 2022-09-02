@@ -31,35 +31,6 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
-def initialization(sample_env, agent, lr=1e-4, minibatch=10):
-    return_list = []
-    minibatch_grads = []
-    for _ in range(minibatch):
-        episode_return = 0
-        transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-        state = sample_env.reset()
-        done = False
-        while not done:
-            action = agent.take_action(state)
-            next_state, reward, done, _ = sample_env.step(action)
-            transition_dict['states'].append(state)
-            transition_dict['actions'].append(action)
-            transition_dict['next_states'].append(next_state)
-            transition_dict['rewards'].append(reward)
-            transition_dict['dones'].append(done)
-            state = next_state
-            episode_return += reward
-        return_list.append(episode_return)
-        advantage = agent.update_value(transition_dict)
-        single_traj_grads = agent.compute_grads(transition_dict, advantage)
-        minibatch_grads.append(single_traj_grads)
-
-    prev_u = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
-    old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
-    new_para = old_para + lr * prev_u
-    torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
-
-
 class PolicyNetContinuous(torch.nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(PolicyNetContinuous, self).__init__()
@@ -228,7 +199,6 @@ def set_args(seed=0):
     parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='value learning rate')
     parser.add_argument('--kl_constraint', type=float, default=0.05, help='kl constraint')
     parser.add_argument('--actor_lr', type=float, default=2.5e-3, help='policy learning rate')
-    parser.add_argument('--init_lr', type=float, default=3e-4, help='actor_lr')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
     parser.add_argument('--num_episodes', type=int, default=5000, help='number training episodes')
@@ -248,7 +218,6 @@ def run(env_name, seed=0):
     lmbda = args.lmbda
     min_isw = args.min_isw
     actor_lr = args.actor_lr
-    init_lr = args.init_lr
     epoch_size = args.epoch_size
     minibatch_size = args.minibatch_size
     batch_size = args.batch_size
@@ -259,7 +228,6 @@ def run(env_name, seed=0):
     agent = SRVR_NPG_Continuous(sample_env.observation_space, sample_env.action_space, lmbda, kl_constraint, critic_lr,
                                 gamma, device, min_isw)
 
-    initialization(sample_env, agent, lr=init_lr, minibatch=minibatch_size)
     env = gym.make(env_name)
     env.seed(args.seed)
     return_list = []

@@ -243,7 +243,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
     parser.add_argument('--kl_constraint', type=float, default=2.5e-5, help='kl_constraint')
     parser.add_argument('--alpha', type=float, default=0.1, help='alpha')
-    parser.add_argument('--actor_lr', type=float, default=1, help='learning rate used in initialization')
+    parser.add_argument('--init_lr', type=float, default=1, help='learning rate used in initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--max_eps_len', type=int, default=100, help='number of steps per episode')
     parser.add_argument('--num_episodes', type=int, default=2000, help='number training episodes')
@@ -264,7 +264,7 @@ def run(beta, seed):
     lmbda = args.lmbda
     beta = args.beta
     min_isw = args.min_isw
-    actor_lr = args.actor_lr
+    init_lr = args.init_lr
     minibatch_size = args.minibatch_size
     critic_lr = args.critic_lr
     kl_constraint = args.kl_constraint
@@ -274,7 +274,7 @@ def run(beta, seed):
     env = GridWorldEnv(seed=seed, random_pos=True)
     agent = Momentum_NPG(env.observation_space, env.action_space, lmbda, kl_constraint, alpha, critic_lr, gamma, device, min_isw, beta)
     old_policy = copy.deepcopy(agent.actor)
-    prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=actor_lr, minibatch=minibatch_size)
+    prev_v = initialization(env, agent, max_eps_len=max_eps_len, lr=init_lr, minibatch=minibatch_size)
 
     return_list = []
     for i in range(10):
