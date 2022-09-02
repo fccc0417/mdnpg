@@ -16,7 +16,7 @@ def load_pi(num_agents, topology):
         topo = 3
 
     with open('topology/connectivity/%s_%s.json' % (wsize, topo), 'r') as f:
-        cdict = json.load(f)  # connectivity dict.
+        cdict = json.load(f)  # connectivity dict
     return cdict['pi']
 
 
@@ -140,11 +140,14 @@ def compute_advantage(gamma, lmbda, td_delta):
     return torch.tensor(advantage_list, dtype=torch.float)
 
 
-def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_eps_len=20):
+def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_eps_len=20, algo='pg'):
     """Initialization for traning agents."""
     prev_v_lists, y_lists = [], []
+    states_lists = []  # list of states for all agents
+    
     for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):
         minibatch_grads_n = []
+        states_list = []  # list of states for each agent
         print("Initializing for " + f"agent {idx}" + "...")
         for i in range(minibatch_size):
             episode_return = 0
@@ -152,6 +155,8 @@ def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_ep
             state = sample_env.reset()
             state = np.concatenate(state).ravel()
             for t in range(max_eps_len):
+                if algo == 'npg':
+                    states_list.append(state)               
                 actions = agent.take_actions(state)
                 next_state, rewards, dones, _ = sample_env.step(actions)
                 next_state = np.concatenate(next_state).ravel()
@@ -180,10 +185,24 @@ def initialization_gt(sample_envs, agents, pi, lr=3e-4, minibatch_size=1, max_ep
         y_list = copy.deepcopy(prev_v_list)
         prev_v_lists.append(prev_v_list)
         y_lists.append(y_list)
+        if algo == 'npg':
+            states_lists.append(states_list)
 
     consensus_y_lists = take_grad_consensus(y_lists, pi)
+
+    if algo == 'npg':
+        update_grad_lists = []
+        for cons_y_list, agent, states_list in zip(consensus_y_lists, agents, states_lists):
+            direction_grad_list = agent.compute_precondition_with_y(states_list, cons_y_list)
+            update_grad_lists.append(direction_grad_list)
+        consensus_grad_lists = take_grad_consensus(update_grad_lists, pi)
+    else:
+        consensus_grad_lists = copy.deepcopy(consensus_y_lists)
+
     agents = take_param_consensus(agents, pi)
-    for agent, y_list in zip(agents, consensus_y_lists):
-        update_param(agent, y_list, lr=lr)
+
+    for agent, grad_list in zip(agents, consensus_grad_lists):
+        update_param(agent, grad_list, lr=lr)
+
     return prev_v_lists, consensus_y_lists
 

@@ -34,6 +34,8 @@ def compute_advantage(gamma, lmbda, td_delta):
 def initialization(sample_env, agent, lr=1e-4, minibatch=10):
     return_list = []
     minibatch_grads = []
+    states_list = []   
+    
     for _ in range(minibatch):
         episode_return = 0
         transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
@@ -41,6 +43,7 @@ def initialization(sample_env, agent, lr=1e-4, minibatch=10):
         done = False
 
         while not done:
+            states_list.append(state)
             action = agent.take_action(state)
             next_state, reward, done, _ = sample_env.step(action)
             transition_dict['states'].append(state)
@@ -57,9 +60,17 @@ def initialization(sample_env, agent, lr=1e-4, minibatch=10):
 
     prev_v = torch.mean(torch.stack(minibatch_grads, dim=1), dim=1)
 
+    states = torch.tensor(states_list, dtype=torch.float)
+    mu, std = agent.actor(states)
+    old_action_dists = torch.distributions.Normal(mu.detach(), std.detach())
+    descent_direction = agent.conjugate_gradient(prev_v, states, old_action_dists)
+    Hd = agent.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
+    max_coef = torch.sqrt(2 * agent.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
+
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
-    new_para = old_para + lr * prev_v
+    new_para = old_para + lr * prev_v * max_coef
     torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
+
     return prev_v
 
 
@@ -261,7 +272,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='value learning rate')
     parser.add_argument('--kl_constraint', type=float, default=0.0005, help='kl constraint')
     parser.add_argument('--alpha', type=float, default=0.1, help='alpha')
-    parser.add_argument('--actor_lr', type=float, default=3e-4, help='policy learning for initialization')
+    parser.add_argument('--actor_lr', type=float, default=1, help='learning rate for initialization')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_episodes', type=int, default=5000, help='number training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')

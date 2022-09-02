@@ -143,14 +143,17 @@ class MomentumNPG:
         Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction)
         max_coef = torch.sqrt(2 * self.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
 
-        states_2 = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
-        actions_2 = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
-        old_log_probs_2 = torch.log(self.actor(states_2).gather(1, actions_2)).detach()
-        old_action_dists_2 = torch.distributions.Categorical(self.actor(states_2).detach())
+        if transition_dict is None:
+            vec_grad = max_coef * descent_direction
 
-        # line search
-        vec_grad = self.line_search(states_2, actions_2, advantage, old_log_probs_2, old_action_dists_2,
-                                    descent_direction * max_coef)
+        else:   
+            states_2 = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+            actions_2 = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+            old_log_probs_2 = torch.log(self.actor(states_2).gather(1, actions_2)).detach()
+            old_action_dists_2 = torch.distributions.Categorical(self.actor(states_2).detach())
+            # line search
+            vec_grad = self.line_search(states_2, actions_2, advantage, old_log_probs_2, old_action_dists_2,
+                                        descent_direction * max_coef)
         return vec_grad
 
 

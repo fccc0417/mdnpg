@@ -23,7 +23,7 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
     parser.add_argument('--num_agents', type=int, default=num_agents, help='number of agents')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--critic_lr', type=float, default=1e-2, help='value learning rate')
-    parser.add_argument('--grad_lr', type=float, default=5e-4, help='policy learning rate in initialization')
+    parser.add_argument('--grad_lr', type=float, default=0.01, help='learning rate in initialization')
     parser.add_argument('--lmbda', type=float, default=0.95, help='lambda for GAE')
     parser.add_argument('--kl_constraint', type=float, default=1e-5, help='kl_constraint for NPG')
     parser.add_argument('--alpha', type=float, default=0.1, help='alpha for line search')
@@ -68,7 +68,7 @@ def run(args):
 
     # Initialization.
     prev_v_list, y_list = initialization_gt(sample_envs=envs, agents=agents, pi=pi, lr=args.grad_lr, minibatch_size=args.init_minibatch_size,
-                                           max_eps_len=args.max_eps_len)
+                                           max_eps_len=args.max_eps_len, algo='npg')
 
     return_list = []
     error_list = []

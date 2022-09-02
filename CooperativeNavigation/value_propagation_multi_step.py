@@ -112,7 +112,7 @@ class ValuePropagation:
 
     @torch.no_grad()
     def update_primal_problem(self):
-        """Update policy network and value network."""
+        """Update the policy network and value network."""
         self.policy_optimizer.step()
         self.value_optimizer.step()
 

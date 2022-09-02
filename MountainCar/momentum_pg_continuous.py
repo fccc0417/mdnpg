@@ -209,7 +209,7 @@ def set_args(beta=0.2, seed=0):
     parser.add_argument('--num_episodes', type=int, default=5000, help='number of training episodes')
     parser.add_argument('--beta', type=float, default=beta, help='beta for momentum-based VR')
     parser.add_argument('--min_isw', type=float, default=0.0, help='minimum value of importance weight')
-    parser.add_argument('--minibatch_size', type=int, default=1, help='number of trajectory for batch gradient in initialization')
+    parser.add_argument('--minibatch_size', type=int, default=10, help='number of trajectory for batch gradient in initialization')
     args = parser.parse_args()
     return args
 

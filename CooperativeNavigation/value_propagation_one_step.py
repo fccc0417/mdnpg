@@ -80,7 +80,6 @@ class ValuePropagation:
         dual_loss = torch.mean(dual_obj)
         self.dual_optimizer.zero_grad()
         dual_loss.backward()
-        # consensus value
 
     @torch.no_grad()
     def update_dual_problem(self):

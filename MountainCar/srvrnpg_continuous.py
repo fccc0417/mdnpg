@@ -228,7 +228,7 @@ def set_args(seed=0):
     parser.add_argument('--critic_lr', type=float, default=2.5e-3, help='value learning rate')
     parser.add_argument('--kl_constraint', type=float, default=0.05, help='kl constraint')
     parser.add_argument('--actor_lr', type=float, default=2.5e-3, help='policy learning rate')
-    parser.add_argument('--init_lr', type=float, default=0, help='actor_lr')
+    parser.add_argument('--init_lr', type=float, default=3e-4, help='actor_lr')
     parser.add_argument('--seed', type=int, default=seed, help='random seed')
     parser.add_argument('--num_agents', type=int, default=1, help='number of agents')
     parser.add_argument('--num_episodes', type=int, default=5000, help='number training episodes')

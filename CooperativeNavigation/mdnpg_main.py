@@ -83,7 +83,7 @@ def run(args, env_name):
 
     # Mini-batch initialization.
     prev_v_lists, y_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=args.init_minibatch_size,
-                                           max_eps_len=args.max_eps_len)
+                                           max_eps_len=args.max_eps_len, algo='npg')
 
     # Generate an environment list for agents for training.
     envs = []

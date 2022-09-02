@@ -83,7 +83,7 @@ def run(args, env_name):
     prev_v_lists, y_lists = initialization_gt(sample_envs, agents, pi, lr=args.init_lr, minibatch_size=args.init_minibatch_size,
                                                 max_eps_len=args.max_eps_len)
 
-    # TEST: When topo is dense, nums=[0]
+    # TEST: When topo is dense, complete consensus.
     # numss = []
     # for agent in agents:
     #     nums = []

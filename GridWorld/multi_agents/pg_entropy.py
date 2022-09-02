@@ -13,7 +13,7 @@ class PGwithEntropy:
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma  # discount factor
         self.lmbda = lmbda  # lambda for GAE
-        self.entropy_para = entropy_para  # for regularization
+        self.entropy_para = entropy_para  # coefficient for entropy-based regularization
         self.device = device
 
     def take_action(self, state):

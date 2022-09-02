@@ -184,8 +184,6 @@ class MomentumNPG:
             # Calculate NPG update coefficient.
             Hd = self.hessian_matrix_vector_product(states, old_action_dists, descent_direction, idx)
             max_coef = torch.sqrt(2 * self.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
-            min_coef = 1e-7
-            max_coef = max_coef if max_coef > min_coef else min_coef
             vec_grad = max_coef * descent_direction
             vec_grad_list.append(vec_grad)
         return vec_grad_list

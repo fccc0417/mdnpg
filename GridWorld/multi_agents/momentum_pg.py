@@ -14,7 +14,7 @@ class MomentumPG:
         self.gamma = gamma  # discount factor
         self.lmbda = lmbda  # lambda for GAE
         self.device = device
-        self.min_isw = min_isw  # minimum importance weight
+        self.min_isw = min_isw  # minimum value of importance weight
         self.beta = beta
 
     def take_action(self, state):

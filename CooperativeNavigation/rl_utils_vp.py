@@ -15,7 +15,7 @@ def load_pi(num_agents, topology):
         topo = 3
 
     with open('topology/connectivity/%s_%s.json' % (wsize, topo), 'r') as f:
-        cdict = json.load(f)  # connectivity dict.
+        cdict = json.load(f)  # connectivity dict
     return cdict['pi']
 
 

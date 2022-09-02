@@ -36,7 +36,6 @@ def set_args(num_agents=1, topology='dense'):
 
 
 def run(args, env_name):
-    # timestr = str(time()).replace('.', 'p')
     fpath2 = os.path.join('records', 'vaule_propagation_logs', str(num_agents) + '_agents', topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)

@@ -39,7 +39,6 @@ def set_args(num_agents=1, beta=0.2, topology='dense'):
 
 
 def run(args):
-    # timestr = str(time()).replace('.', 'p')
     fpath2 = os.path.join('records', 'mdpgt_logs', str(num_agents) + 'D', 'beta=' + str(args.beta), topology)
     if not os.path.isdir(fpath2):
         os.makedirs(fpath2)

@@ -92,13 +92,15 @@ def update_y(y, v, prev_v):
     return next_y
 
 
-def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
+def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len, algo='pg'):
     """Initialization for traning agents."""
     prev_v_list = []
     y_list = []
+    states_lists = []  # list of states for all agents
 
     for idx, (agent, sample_env) in enumerate(zip(agents, sample_envs)):
         minibatch_grads_n = []
+        states_list = []  # list of states for each agent        
         print("Initializing for "+ f"agent {idx}" + "...")
         for i in range(minibatch_size):
             episode_return = 0
@@ -106,6 +108,8 @@ def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
             state = sample_env.reset()
             done = False
             for t in range(max_eps_len):
+                if algo == 'npg':
+                    states_list.append(state)
                 action = agent.take_action(state)
                 next_state, reward, done, _ = sample_env.step(action)
                 transition_dict['states'].append(state)
@@ -129,10 +133,24 @@ def initialization_gt(sample_envs, agents, pi, lr, minibatch_size, max_eps_len):
         y_grad = copy.deepcopy(avg_grads_n)
         prev_v_list.append(prev_v)
         y_list.append(y_grad)
+        if algo == 'npg':
+            states_lists.append(states_list)
+
+    consensus_y_list = take_grad_consensus(y_list, pi)
+
+    if algo == 'npg':
+        update_grad_list = []
+        for y, agent, states_list in zip(consensus_y_list, agents, states_lists):
+            direction_grad = agent.compute_precondition_with_y(states_list, y, None, None)
+            update_grad_list.append(direction_grad)
+        consensus_grad_list = take_grad_consensus(update_grad_list, pi)
+    else:
+        consensus_grad_list = copy.deepcopy(consensus_y_list)
 
     agents = take_param_consensus(agents, pi)
-    consensus_y_list = take_grad_consensus(y_list, pi)
-    for agent, y in zip(agents, consensus_y_list):
+
+    for agent, y in zip(agents, consensus_grad_list):
         update_param(agent, y, lr=lr)
+
     return prev_v_list, consensus_y_list
 

@@ -59,7 +59,7 @@ class MomentumPG:
         return obj_grad_list
 
     def compute_IS_weight(self, actions_list, states, phis, min_isw):
-        """Calculate importance weight."""
+        """Calculate the importance weight."""
         probs_list = []
         old_probs_list = []
         for idx, (actor, phi) in enumerate(zip(self.actors, phis)):

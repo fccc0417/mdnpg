@@ -61,7 +61,7 @@ class PGwithEntropy:
         self.critic = ValueNet(self.state_dim).to(device)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma = gamma
-        self.lmbda = lmbda  # GAE参数
+        self.lmbda = lmbda  # lambda for GAE
         self.device = device
         self.entropy_para = entropy_para
         self.actor_lr = actor_lr
