@@ -1,6 +1,6 @@
 # Momentun-based Decentralized Natural Policy Gradient (MDNPG)
 
-Code for paper "Decentralized Natural Policy Gradient with Variance Reduction for Collaborative Multi-Agent Reinforcement Learning"
+Code for paper "[Decentralized Natural Policy Gradient with Variance Reduction for Collaborative Multi-Agent Reinforcement Learning](https://arxiv.org/pdf/2209.02179.pdf)"
 
 ## Basic Requirements
 * Python (3.7)
