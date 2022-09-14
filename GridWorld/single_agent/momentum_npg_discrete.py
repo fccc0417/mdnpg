@@ -69,7 +69,7 @@ def initialization(sample_env, agent, max_eps_len=150, lr=1e-4, minibatch=10):
     max_coef = torch.sqrt(2 * agent.kl_constraint / (torch.dot(descent_direction, Hd) + 1e-8))
 
     old_para = torch.nn.utils.convert_parameters.parameters_to_vector(agent.actor.parameters())
-    new_para = old_para + lr * prev_v * max_coef
+    new_para = old_para + lr * descent_direction * max_coef
     torch.nn.utils.convert_parameters.vector_to_parameters(new_para, agent.actor.parameters())
 
     return prev_v
